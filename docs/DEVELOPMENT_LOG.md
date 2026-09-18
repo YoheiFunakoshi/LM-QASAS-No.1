@@ -37,3 +37,26 @@ Python環境の構築、PyTorch/AbLang2のインストール、モデルの取�
 - 次に進める作業
 
 公開用の例・テストには明示した模擬データを用いる。実配列・実サンプル情報をコマンド例、エラーログ、スクリーンショット、PR本文へ貼り付けない。
+
+## 2026-09-19: Phase 0/1 — CPU環境とAbLang2最小検証
+
+### 実施内容
+
+- 専用Python 3.12.1環境を作り、PyTorch 2.14.0+cpu、AbLang2 0.2.1と依存packageを導入。pip checkは成功。
+- scripts/environment_check.pyを作成。RAM約16GiB、論理CPU12、GTX 1660 SUPER 6GiB、driver 457.51を確認した。今回の実行deviceはCPU。
+- scripts/prepare_ablang2.pyで公式Zenodo checkpointを取得。公開サイズ/MD5、展開後SHA-256、480次元の設定を検証し、出所を記録した。
+- scripts/smoke_ablang2.pyで人工配列10本を処理した。モデル取得と推論を分離し、import後のPythonソケット通信を禁止したローカル推論を行った。
+- 初回は10×480、有限値、同条件の完全一致、batch 4対1の許容差内一致、保存後の完全一致をすべて確認。モデル読込約0.40秒、推論3回合計約0.77秒。
+- 依存バージョン固定、準備手順、開発計画、モデル設定とpooling上の未確定事項を文書化した。
+
+### 検証
+
+unit test 4件が成功。環境probeの異常系、既存記録の上書き防止、モデルhash不一致の拒否、通信ガードを確認した。固定依存のdry-runとpip checkも成功。公式CPU indexで--ignore-installedを付けた新規解決確認も成功。既存モデルの再検証は再ダウンロードなしで成功。さらに別Pythonプロセスで再実行し、初回とembeddingが完全一致した。
+
+人工データの最終版スクリプトによる推論記録はdocs/validation/phase01_cpu.json。検証は作業branchの未commit状態で実行し、記録にはbase commitと実行したスクリプトのhashを残した。実データと提供資料はこの段階では解析に使用せず、原本の保全確認だけを行う。
+
+モデルparameterのtorch.float32と、公式seqcodingが返すNumPy float64を別々に実測記録した。
+
+### 未実施と次の段階
+
+実データのembedding、入力clone生成、K-means/k-NN、候補抽出、UMAP、GUI、GPU推論は未実施。Top Nの単位と元解析コードの有無をユーザーへ確認した。次段階の具体的な判断と完了条件はdocs/PLAN.mdに記載した。
