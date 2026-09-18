@@ -1,0 +1,104 @@
+{
+  "created_at_utc": "2026-09-18T22:39:16.552823+00:00",
+  "data_kind": "synthetic_only_not_biological_validation",
+  "synthetic_seed": 20260919,
+  "sequence_count": 10,
+  "sequence_lengths": [
+    5,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    22,
+    32,
+    54
+  ],
+  "python": "3.12.1",
+  "packages": {
+    "torch": "2.14.0+cpu",
+    "ablang2": "0.2.1",
+    "numpy": "2.5.3"
+  },
+  "git_base_commit": "35dc95102f74e76c1d0b614f025f395959102881",
+  "script_sha256": "b4694d80ba220deb344a77bcc0456a10bdcd0783557da99175422f0e123791c2",
+  "model": {
+    "prepared_at_utc": "2026-09-18T22:34:46.925730+00:00",
+    "model_name": "ablang2-paired",
+    "source_url": "https://zenodo.org/records/10185169/files/ablang2-weights.tar.gz",
+    "zenodo_record": "10185169",
+    "archive_bytes": 166154117,
+    "archive_md5": "6425b35e9b83750fde67a6a6d240d996",
+    "archive_sha256": "7acb23b880e3b69b3fea8b7d6cacac0fda147daafd99edc411e0ff5c61252ac5",
+    "code_license": "BSD-3-Clause",
+    "zenodo_license_id": "bsd-3-clause-clear",
+    "files": {
+      "hparams.json": {
+        "bytes": 228,
+        "sha256": "33474b76d78e01beb24b3621cd44d42b0813333d21e5b806168580bd836c5c8d"
+      },
+      "model.pt": {
+        "bytes": 179314477,
+        "sha256": "56d6f07862a6f824f88c8707bbc03e4026c9db762be2d3041e9767e2e6f86386"
+      }
+    },
+    "hparams": {
+      "name": "AbLang-2",
+      "n_encoder_blocks": 12,
+      "hidden_embed_size": 480,
+      "n_attn_heads": 20,
+      "a_fn": "swiglu",
+      "layer_norm_eps": 1e-12,
+      "pad_tkn": 21,
+      "start_tkn": 0,
+      "end_tkn": 22,
+      "sep_tkn": 25,
+      "mask_tkn": 23,
+      "vocab_size": 26
+    }
+  },
+  "device": "cpu",
+  "model_parameter_dtype": "torch.float32",
+  "embedding_dtype": "float64",
+  "torch_threads": 4,
+  "batch_size": 4,
+  "torch_seed": 20260919,
+  "mode": "official_seqcoding",
+  "input_format": "[[heavy_CDR3, empty_light_chain], ...]",
+  "formatted_tokens": "<heavy_CDR3>|",
+  "pooling": "Mean of all non-padding formatted tokens, including <, > and |.",
+  "paper_pooling_equivalence": "unconfirmed",
+  "align": false,
+  "fragmented": false,
+  "python_socket_network_guard": true,
+  "shape": [
+    10,
+    480
+  ],
+  "checks": {
+    "shape_10_by_480": true,
+    "finite": true,
+    "repeat_equal": true,
+    "repeat_close": true,
+    "batch_size_invariance": true,
+    "saved_array_round_trip": true
+  },
+  "repeat_max_abs_difference": 0.0,
+  "batch_size_max_abs_difference": 9.692739695310593e-07,
+  "tolerance": {
+    "atol": 1e-05,
+    "rtol": 1e-05
+  },
+  "model_load_seconds": 0.3816484999842942,
+  "three_embedding_passes_seconds": 0.7621812999714166,
+  "success": true,
+  "followup_validation": {
+    "fresh_process_equal": true,
+    "fresh_process_max_abs_difference": 0.0,
+    "unit_tests_passed": 4,
+    "pip_check_passed": true,
+    "locked_requirements_satisfied": true,
+    "existing_model_reverified_without_download": true
+  }
+}
