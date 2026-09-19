@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM-QASAS | 3時点のレパトア解析</title>
+  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/" class="brand"><span class="brand-icon" aria-hidden="true">LM</span><span>LM-QASAS <small>No.1</small></span></a>
+    <div class="local-badge"><span aria-hidden="true"></span>このPC内で処理</div>
+  </header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">LONGITUDINAL REPERTOIRE ANALYSIS</p><h1>3時点から、候補配列へ。</h1><p>Pre・Peak・Postを比較し、重複しないCDR-H3を取り出します。</p></div><span class="version">K-means版 · CPU</span></div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <div class="workspace">
+      <aside>
+        <section class="panel saved-panel"><div class="section-title"><span class="step">01</span><h2>保存した結果を開く</h2><button id="refresh" class="icon-button" title="保存した結果を更新" aria-label="保存した結果を更新">↻</button></div>
+          <label for="runChoice" class="small-label">解析結果</label><select id="runChoice"><option value="">読み込み中…</option></select>
+          <p class="hint">前回の結果は、AbLang2を再計算せずに確認できます。</p>
+        </section>
+        <section class="panel input-panel"><div class="section-title"><span class="step">02</span><h2>新しく解析する</h2></div>
+          <form id="analysisForm">
+            <label for="subject">解析用の識別名 <span class="optional">氏名は使わない</span></label><input id="subject" name="subject" type="text" placeholder="例：S001" maxlength="100" required autocomplete="off">
+            <div class="file-list">
+              <label class="file-box" for="preFile"><span class="phase"><b>Pre</b><small>前の時点</small></span><span class="file-text" id="preName">CSVを選択</span><input id="preFile" type="file" accept=".csv,text/csv" required></label>
+              <label class="file-box" for="peakFile"><span class="phase"><b>Peak</b><small>ピーク時点</small></span><span class="file-text" id="peakName">CSVを選択</span><input id="peakFile" type="file" accept=".csv,text/csv" required></label>
+              <label class="file-box" for="postFile"><span class="phase"><b>Post</b><small>後の時点</small></span><span class="file-text" id="postName">CSVを選択</span><input id="postFile" type="file" accept=".csv,text/csv" required></label>
+            </div>
+            <label for="newTopN">抽出するCDR-H3の種類数</label>
+            <div class="presets" aria-label="新規解析の候補数"><button type="button" data-target="newTopN" data-count="300">300</button><button type="button" data-target="newTopN" data-count="500">500</button><button type="button" data-target="newTopN" data-count="1000" aria-pressed="true">1,000</button></div>
+            <div class="number-unit"><input id="newTopN" type="number" value="1000" min="1" step="1" required><span>種類</span></div>
+            <details class="settings"><summary>解析条件を確認・変更</summary><p class="hint">論文の記載と今回の暫定値を区別して保存します。</p><div class="settings-grid">
+              <label>cluster数 K<input id="clusters" type="number" value="500" min="1" step="1" required></label>
+              <label>epsilon（暫定）<input id="epsilon" type="number" value="1" min="0.000001" step="any" required></label>
+              <label>乱数seed（暫定）<input id="seed" type="number" value="20260919" min="0" max="4294967295" step="1" required></label>
+              <label>初期化の試行回数<input id="nInit" type="number" value="10" min="1" step="1" required></label>
+              <label>一度に処理する配列数<input id="batchSize" type="number" value="32" min="1" step="1" required></label>
+              <label>CPUの並列数<input id="threads" type="number" value="4" min="1" step="1" required></label>
+            </div></details>
+            <button id="analyze" class="primary full" type="submit">解析を開始 <span aria-hidden="true">→</span></button>
+            <p class="hint privacy">元ファイルは変更しません。選んだCSVのコピーをこのPC内に保存して処理します。</p>
+          </form>
+        </section>
+      </aside>
+      <div class="results">
+        <section id="jobPanel" class="panel job-panel" aria-live="polite" hidden><div class="job-top"><h2 id="jobTitle">解析中</h2><span id="jobPercent"></span></div><progress id="jobProgress" max="1"></progress><p id="jobMessage" class="hint"></p><ol class="stages"><li data-stage="validated">入力確認</li><li data-stage="embedding">AbLang2</li><li data-stage="kmeans">K-means</li><li data-stage="umap">共通UMAP</li><li data-stage="render">画像・保存</li></ol></section>
+        <section class="panel figure-panel">
+          <div class="result-heading"><div><p class="eyebrow">REPERTOIRE OVERVIEW</p><h2 id="resultTitle">解析結果</h2></div><span id="runBadge" class="tag">結果を選択してください</span></div>
+          <div id="metrics" class="metrics" hidden></div>
+          <div id="plotEmpty" class="empty-state"><div class="empty-mark" aria-hidden="true">Pre <span>―</span> Peak <span>―</span> Post</div><h3>3時点を、同じ座標で比較</h3><p>保存した結果を開くか、3つのCSVを選んで解析を開始してください。</p><button id="visualize" class="secondary" type="button" disabled>共通UMAPを作る</button></div>
+          <figure id="plotFigure" hidden><a id="plotLink" target="_blank" rel="noopener" aria-label="UMAP画像を拡大して開く"><img id="plot" alt="Pre・Peak・Postを共通のUMAP座標と密度の色尺度で比較し、Peakで選んだCDR-H3の各時点の位置を印で示した図"></a><figcaption><span class="marker" aria-hidden="true">○</span> 印：Peakで選ばれたCDR-H3の各時点の位置。背景：各時点で正規化したcloneの密度。<br>候補のスコアは元の480次元で計算しています。UMAPは分布を確認するための表示です。</figcaption></figure>
+          <div id="figureActions" class="figure-actions" hidden><span class="hint">画像をクリックすると拡大できます。</span><a id="pngDownload" class="text-link" download>PNGを保存 ↓</a></div>
+        </section>
+        <section id="candidatePanel" class="panel candidate-panel" hidden>
+          <div class="section-title"><h2>候補配列 <span id="candidateCount" class="count-badge"></span></h2><a id="csvDownload" class="secondary link-button" download>CSVを保存 ↓</a></div>
+          <p class="hint">CDR-H3の重複を除いた一覧です。高い順位は抗原への結合を確定するものではありません。</p>
+          <div class="selection-controls"><div><label for="selectionChoice" class="small-label">保存した選択結果</label><select id="selectionChoice"></select></div><div><label for="resultTopN" class="small-label">種類数を変更</label><div class="reselect-row"><input id="resultTopN" type="number" min="1" step="1" value="1000" aria-label="再選択する種類数"><button id="reselect" class="secondary" type="button">再選択</button></div></div></div>
+          <div class="presets result-presets"><button type="button" data-target="resultTopN" data-count="300">300</button><button type="button" data-target="resultTopN" data-count="500">500</button><button type="button" data-target="resultTopN" data-count="1000">1,000</button><span class="hint">AbLang2・K-means・UMAPの再計算は不要</span></div>
+          <p id="selectionNote" class="selection-note" hidden></p>
+          <div class="table-toolbar"><input id="search" type="search" placeholder="CDR-H3配列を検索" aria-label="候補CDR-H3配列を検索" autocomplete="off"><span id="tableRange" class="hint"></span></div>
+          <div class="table-scroll"><table><thead><tr><th>順位</th><th>CDR-H3アミノ酸配列</th><th class="numeric">スコア</th><th class="numeric">clone数</th><th>cluster</th></tr></thead><tbody id="candidateRows"></tbody></table></div>
+          <div class="table-footer"><a id="provenanceDownload" class="text-link" download>元のclone・入力行の由来を保存（JSON）</a><div class="pagination"><button id="prevPage" aria-label="前のページ">←</button><span id="pageLabel"></span><button id="nextPage" aria-label="次のページ">→</button></div></div>
+        </section>
+        <details id="auditPanel" class="panel audit-panel" hidden><summary>入力検査・解析条件・注意点</summary><div id="auditContent"></div></details>
+      </div>
+    </div>
+    <footer>LM-QASAS No.1 <span>研究用・候補抽出</span><span>操作と設定の説明：docs/GUIDE_JA.md</span></footer>
+  </main>
+</body>
+</html>

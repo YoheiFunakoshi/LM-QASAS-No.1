@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-19",
+  "scope": "Shared UMAP, local browser interface and Japanese user guide",
+  "unit_tests": {"total": 88, "passed": 87, "skipped": 1, "failed": 0},
+  "skip_reason": "Windows real symlink creation privilege unavailable; resolved boundary rejection verified separately",
+  "browser_new_analysis": "Synthetic 3 CSV files through actual AbLang2, K-means, UMAP and PNG",
+  "browser_saved_real_run": "Shared UMAP, candidate count change, CSV and PNG export",
+  "real_data_reuploaded_through_gui": false,
+  "candidate_overlay_correspondence": "Independently matched CDR-H3 selection to clone observation indices",
+  "cache_reuse": "Shared coordinates and density artifacts unchanged across candidate count changes",
+  "integrity": "Original inputs, source documents and previous run artifacts verified unchanged; details local only",
+  "network_binding": "127.0.0.1 only",
+  "responsive_checks": "Desktop and narrow viewport; no page-level horizontal overflow at narrow width",
+  "biological_performance_validated": false,
+  "paper_parameter_equivalence": "Unconfirmed; provisional defaults documented",
+  "private_artifacts": "Research sequences, images, aggregates, source hashes and detailed audits excluded from GitHub"
+}
