@@ -61,3 +61,9 @@ CUDA 12/13系の新しい構成に移行するには、ドライバーとの互�
 2025年の修士論文の本文pp27–28（PDF pp38–39）に、公開事前学習済みAbLang2-paired、480次元、各残基embeddingの平均という記載がありました。モデル選択の補助根拠になりますが、特殊トークンや正確なcheckpoint/層の扱いを決定できる元コードは得られていません。
 
 最新論文・ポスターを優先し、公式seqcodingの特殊トークン込み平均と同一だったかは引き続き要確認です。今後の本解析では採用するpoolingを明示し、必要なら残基のみの平均との差を比較します。
+
+## 2026-09-19: CLIの実装条件
+
+`embeddings.py`で公式モデルのhashを確認し、CPU・標準batch size 32・4 threadsでCDR-H3を処理します。同じCDR-H3を一度だけ計算し、clone観測は統合せずembedding indexを対応させます。配列長順にbatch化してpaddingを減らし、結果を元のindexへ戻します。seed・dtype・pooling・実際のモデルmanifestを各runに記録します。
+
+`run_analysis.py`でPythonソケット通信を禁止し、既存のローカルモデルだけをロードします。このコマンドからモデルの自動取得や追加学習は行いません。モデル照合の共通処理は`checkpoint.py`です。

@@ -1,6 +1,6 @@
 # Windowsでの準備と再実行
 
-このページは環境確認と**人工配列だけの最小試験**の手順です。候補抽出アプリはまだ完成していません。
+このページは環境構築・確認と人工配列の最小試験の手順です。3時点を解析するコマンドの操作は[日本語解説書](GUIDE_JA.md)の6節にあります。画像表示とGUIは今後の段階です。
 
 ## 検証済みの構成
 
@@ -10,7 +10,7 @@ GTX 1660 SUPER 6GiBとドライバー457.51を検出しましたが、今回のP
 
 ## 1. 専用環境を作る
 
-PowerShellをプロジェクトのルートで開きます。既存の .venv がある場合は作り直さず、手順2の確認から進めます。既存の別プロジェクトのPython環境にはインストールしません。
+PowerShellをプロジェクトのルートで開きます。既存の .venv がある場合は作り直さず、下の「既存環境を更新する」を行ってから手順2へ進めます。既存の別プロジェクトのPython環境にはインストールしません。
 
 ```powershell
 py -3.12 -m venv .venv
@@ -24,7 +24,17 @@ $env:PYTHONUTF8 = '1'
 
 PyTorchを先に公式CPU indexから入れてから、残りの固定依存をPyPIから導入します。pip自体は実行時依存とは別に版を記録しています。上記は検証済み環境の再作成用であり、他OSや他Python版の互換性を保証するものではありません。
 
-既存の準備環境にも、追加した候補選択部品を使う前に最後のeditable installを一度実行します。追加の外部依存はありません。
+### 既存環境を更新する
+
+今回のK-meansエンジンでscikit-learnと関連ライブラリを追加しました。以前の環境にも次を実行します。モデルの取得より前にpackageをinstallしてください。
+
+```powershell
+& .\.venv\Scripts\python.exe -m pip --isolated install -r requirements-cpu.txt
+& .\.venv\Scripts\python.exe -m pip --isolated install --no-deps --no-build-isolation -e .
+& .\.venv\Scripts\python.exe -m pip check
+```
+
+追加版：scikit-learn 1.9.1、SciPy 1.18.1、threadpoolctl 3.7.0、joblib 1.6.0、cloudpickle 3.1.2、narwhals 2.26.0。既存のPyTorch/AbLang2/NumPyの版は維持しています。
 
 ## 2. 環境を確認する
 
@@ -57,7 +67,7 @@ models/ はGit管理外です。個人のレパトア配列を入力する処理
 
 local_records/smoke_<日時>/ に数値配列と実行条件JSONを保存します。確認項目は、10×480の形状、NaN/Infなし、同条件での再現、batch 4対1の一致、保存・読み戻しの一致です。各runは別フォルダーです。
 
-## 今回の結果と限界
+## 初期の人工配列試験の結果と限界
 
 全項目が成功しました。初回のモデル読込は約0.40秒、10本×3回の推論は計約0.77秒でした。全件レパトアの実行時間や候補抽出の正確性を示す測定ではありません。
 

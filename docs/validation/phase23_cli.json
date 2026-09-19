@@ -1,0 +1,45 @@
+{
+  "recorded_at_utc": "2026-09-19T08:30:19.426457+00:00",
+  "scope": "phase_2_3_local_CLI_and_Japanese_guide",
+  "unit_tests": {
+    "passed": 55,
+    "previous": 17,
+    "input": 14,
+    "scoring": 15,
+    "integration": 9,
+    "fixtures": "synthetic_only"
+  },
+  "environment": {
+    "python": "3.12.1",
+    "packages": {
+      "numpy": "2.5.3",
+      "torch": "2.14.0+cpu",
+      "ablang2": "0.2.1",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.18.1",
+      "threadpoolctl": "3.7.0"
+    },
+    "device": "cpu"
+  },
+  "local_validation": {
+    "pipeline_completed": true,
+    "independent_cluster_score_check": true,
+    "embedding_subset_recomputed_with_tolerance": true,
+    "reselection_without_overwrite": true,
+    "protected_originals_unchanged": true
+  },
+  "not_verified": [
+    "exact_paper_reproduction",
+    "antigen_binding",
+    "neutralization",
+    "candidate_performance",
+    "GPU"
+  ],
+  "not_implemented": [
+    "UMAP_visualization",
+    "GUI",
+    "kNN",
+    "multi_subject_QASAS_DB"
+  ],
+  "privacy": "No research sequences, subject statistics, input hashes, or research artifacts in this record."
+}

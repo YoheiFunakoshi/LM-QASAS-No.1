@@ -22,3 +22,10 @@ sympy==1.14.0
 torch==2.14.0+cpu
 typing_extensions==4.16.0
 urllib3==2.8.0
+# Phase 2/3: K-means and numeric dependencies (CPU environment retained).
+cloudpickle==3.1.2
+joblib==1.6.0
+narwhals==2.26.0
+scikit-learn==1.9.1
+scipy==1.18.1
+threadpoolctl==3.7.0
