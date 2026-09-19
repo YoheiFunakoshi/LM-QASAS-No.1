@@ -19,9 +19,12 @@ $env:PYTHONUTF8 = '1'
 & .\.venv\Scripts\python.exe -m pip --isolated install torch==2.14.0+cpu --index-url https://download.pytorch.org/whl/cpu -c requirements-cpu.txt
 & .\.venv\Scripts\python.exe -m pip --isolated install -r requirements-cpu.txt
 & .\.venv\Scripts\python.exe -m pip check
+& .\.venv\Scripts\python.exe -m pip --isolated install --no-deps --no-build-isolation -e .
 ```
 
 PyTorchを先に公式CPU indexから入れてから、残りの固定依存をPyPIから導入します。pip自体は実行時依存とは別に版を記録しています。上記は検証済み環境の再作成用であり、他OSや他Python版の互換性を保証するものではありません。
+
+既存の準備環境にも、追加した候補選択部品を使う前に最後のeditable installを一度実行します。追加の外部依存はありません。
 
 ## 2. 環境を確認する
 
