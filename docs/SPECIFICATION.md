@@ -58,7 +58,7 @@ S(C) = n_peak(C) / (n_pre(C) + epsilon) + n_peak(C) / (n_post(C) + epsilon)
 
 ## 6. 可視化
 
-3時点を比較できる共通のUMAP座標を作り、同じ座標範囲・色の基準でPre・Peak・Postを表示する設計です。候補の強調表示と、入力数・解析対象数・処理進捗も表示します。
+3時点の全clone観測をまとめた共通UMAPと、共通格子・帯域幅・色スケールの時点別KDEを実装しました。各時点の密度は格子上の積分が1になるよう正規化し、Countsで重み付けしません。Peakから選んだCDR-H3が各時点に出現する位置をオレンジで示します。候補数変更は同じ座標と背景密度を再利用します。既定値と限界は[可視化の説明](VISUALIZATION.md)に記載します。
 
 **候補スコアは元の高次元embedding空間で計算し、UMAP座標から計算しません。** 2次元の密度図は理解のための表示です。論文図の既知DB類似配列の印と、アプリが抽出した候補の印を混同しない凡例にします。
 
@@ -68,7 +68,7 @@ S(C) = n_peak(C) / (n_pre(C) + epsilon) + n_peak(C) / (n_post(C) + epsilon)
 
 候補一覧にはrank、subject、timepoint、CDR-H3、V/J、isotype、score、cluster ID、embeddingへの対応、source file/rowへの対応を保持します。同じCDR-H3を出力段階で集約し、元のclone情報と採用スコアの根拠を保持します。[候補選択部品](SELECTION.md)では最大score、同点の辞書順、不足の明示を暫定規則として実装しました。
 
-CLIで候補CSV、由来JSON、embedding/cluster labelsのNPY、clusterスコアCSV、入力監査・実行条件JSONを出力します。候補CSVは順位・CDR-H3・score・clone数・cluster IDを持ち、V/J/isotype・subject・全元行・生の元フィールドは由来JSONに保持します。Excel専用出力・PNGは未実装です。
+GUIまたはCLIで候補CSV、由来JSON、embedding/cluster labelsのNPY、clusterスコアCSV、入力監査・実行条件JSONを出力します。候補CSVは順位・CDR-H3・score・clone数・cluster IDを持ち、V/J/isotype・subject・全元行・生の元フィールドは由来JSONに保持します。可視化時は共通座標NPY、密度NPZ、PNG、表示条件JSONも別の新規フォルダーへ保存します。Excel専用出力は未実装です。
 
 同じ解析スコアからTop Nだけを切り替える際はAbLang2を再計算しない設計です。
 
@@ -91,3 +91,5 @@ CLIで候補CSV、由来JSON、embedding/cluster labelsのNPY、clusterスコア
 ## 10. 現在の実行可能範囲
 
 `run_analysis.py`が入力から候補保存までを実行し、`reselect_candidates.py`が保存済みスコアから件数だけを変えます。入力の暫定条件は[INPUT_RULES](INPUT_RULES.md)、仕組み・操作・結果の読み方は[日本語解説書](GUIDE_JA.md)にまとめます。候補抽出の性能や抗原結合の妥当性を検証済みとは表示しません。
+
+`start_app.py`が127.0.0.1限定のGUIを起動し、別プロセスのworkerが計算と図作成を行います。ブラウザーには進捗・候補表・図・入力検査を表示します。CSVは各20 MiB以下、base64を含むJSON送信全体は64 MiB以下です。大きい入力はCLIを使用します。`visualize_run.py`から保存済みrunを直接可視化することもできます。

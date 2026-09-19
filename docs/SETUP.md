@@ -1,6 +1,6 @@
 # Windowsでの準備と再実行
 
-このページは環境構築・確認と人工配列の最小試験の手順です。3時点を解析するコマンドの操作は[日本語解説書](GUIDE_JA.md)の6節にあります。画像表示とGUIは今後の段階です。
+このページは環境構築・確認と人工配列の最小試験の手順です。3時点を解析するGUI・コマンドの操作は[日本語解説書](GUIDE_JA.md)の6節にあります。環境準備後はプロジェクト直下の `Start-LMQASAS.cmd` から起動できます。
 
 ## 検証済みの構成
 
@@ -26,7 +26,7 @@ PyTorchを先に公式CPU indexから入れてから、残りの固定依存をP
 
 ### 既存環境を更新する
 
-今回のK-meansエンジンでscikit-learnと関連ライブラリを追加しました。以前の環境にも次を実行します。モデルの取得より前にpackageをinstallしてください。
+K-means用scikit-learnに加え、共通UMAP用umap-learnとPNG描画用matplotlibを追加しました。以前の環境にも次を実行します。モデルの取得より前にpackageをinstallしてください。
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pip --isolated install -r requirements-cpu.txt
@@ -35,6 +35,8 @@ PyTorchを先に公式CPU indexから入れてから、残りの固定依存をP
 ```
 
 追加版：scikit-learn 1.9.1、SciPy 1.18.1、threadpoolctl 3.7.0、joblib 1.6.0、cloudpickle 3.1.2、narwhals 2.26.0。既存のPyTorch/AbLang2/NumPyの版は維持しています。
+
+可視化追加版：umap-learn 0.5.12、matplotlib 3.11.2、numba 0.67.0、pynndescent 0.6.0。間接依存もrequirementsに固定しました。GUIサーバーはPython標準ライブラリ、画面はローカルHTML/CSS/JavaScriptを使用し、Node.jsや外部Webサービスの契約は起動に不要です。Numbaの初回コンパイルは時間がかかるため、初回だけで毎回の速度を判断しません。
 
 ## 2. 環境を確認する
 

@@ -16,6 +16,7 @@
 !/LICENSE
 !/LICENSE.*
 !/CHANGELOG.md
+!/Start-LMQASAS.cmd
 
 # Explicitly preserve local-only source material and audit/results.
 **/LM-QASAS No.1 データ/

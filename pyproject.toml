@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lm-qasas-local"
-version = "0.2.0"
-description = "Local LM-QASAS CSV analysis, AbLang2 inference, K-means and candidate selection"
+version = "0.3.0"
+description = "Local LM-QASAS analysis, shared UMAP and browser interface"
 requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
