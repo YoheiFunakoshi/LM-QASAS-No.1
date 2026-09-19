@@ -55,3 +55,9 @@ PyPI wheelの公開SHA-256：
 CUDA 12/13系の新しい構成に移行するには、ドライバーとの互換性確認が必要です。古いCUDA 11系には別の互換条件があるため、単に「GPUは使えない」とは結論しません。ドライバー更新やCUDA環境変更は今回行っていません。
 
 参照：[NVIDIA互換性資料](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)、[PyTorch公式導入手順](https://pytorch.org/get-started/locally/)。
+
+## 修士論文を追加確認した結果
+
+2025年の修士論文の本文pp27–28（PDF pp38–39）に、公開事前学習済みAbLang2-paired、480次元、各残基embeddingの平均という記載がありました。モデル選択の補助根拠になりますが、特殊トークンや正確なcheckpoint/層の扱いを決定できる元コードは得られていません。
+
+最新論文・ポスターを優先し、公式seqcodingの特殊トークン込み平均と同一だったかは引き続き要確認です。今後の本解析では採用するpoolingを明示し、必要なら残基のみの平均との差を比較します。
