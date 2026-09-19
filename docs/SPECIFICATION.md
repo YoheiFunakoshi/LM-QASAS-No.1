@@ -12,13 +12,13 @@
 
 | 列 | 入力上の役割・留意点 |
 | --- | --- |
-| Vseg | V遺伝子の注釈。複数候補が同一セルに記載される場合の方針は未決定 |
+| Vseg | V遺伝子の注釈。暫定実装ではalleleを除き、複数候補を集合として保持 |
 | Jseg | J遺伝子の注釈 |
 | CDR3 | AbLang2へ渡すCDR-H3アミノ酸配列 |
 | AAlength | 記載されたアミノ酸長。実際の配列長と検証する |
 | NTlength | 記載された塩基長。これだけで全VDJの読み枠を証明しない |
 | Type | 品質・状態ラベル。isotypeとして扱わない |
-| Cseg | isotype/subclassへの対応候補。対応と粒度は明示的に決める |
+| Cseg | 明示対応表でsubclassを保持。元論文と同じ粒度かは要確認 |
 | Counts | 元の値を保持する。単位を未確認のままread数・UMI数と断定しない |
 | Frequency(%) | 元の頻度情報を保持する |
 
@@ -54,7 +54,7 @@ S(C) = n_peak(C) / (n_pre(C) + epsilon) + n_peak(C) / (n_post(C) + epsilon)
 
 候補抽出時に既知抗体DBを必要としないことと、論文の条件選定・評価で既知DBを使っていないことは同義ではありません。
 
-epsilonの値、K-meansのseed/n_init、同点順位、近傍の自己点・距離ゼロの扱いなどは[未決定事項](DECISIONS.md)を参照します。全配列間の巨大な距離行列を無条件に作成しません。
+実装ではepsilon=1.0、seed=20260919、n_init=10、K-means++/Lloyd法・Euclidean距離・スケーリングなしを暫定採用しました。元条件との一致やk-NNの自己点・距離ゼロなどは[決定記録](DECISIONS.md)を参照します。全配列間の巨大な距離行列を無条件に作成しません。
 
 ## 6. 可視化
 
@@ -68,7 +68,7 @@ epsilonの値、K-meansのseed/n_init、同点順位、近傍の自己点・距�
 
 候補一覧にはrank、subject、timepoint、CDR-H3、V/J、isotype、score、cluster ID、embeddingへの対応、source file/rowへの対応を保持します。同じCDR-H3を出力段階で集約し、元のclone情報と採用スコアの根拠を保持します。[候補選択部品](SELECTION.md)では最大score、同点の辞書順、不足の明示を暫定規則として実装しました。
 
-候補CSV/Excel、可視化PNG、解析条件・環境・バージョン・input hash・処理件数・除外理由・実行時間等のローカルログを目標とします。出力形式は実装時に検証し、未実装を対応済みと表示しません。
+CLIで候補CSV、由来JSON、embedding/cluster labelsのNPY、clusterスコアCSV、入力監査・実行条件JSONを出力します。候補CSVは順位・CDR-H3・score・clone数・cluster IDを持ち、V/J/isotype・subject・全元行・生の元フィールドは由来JSONに保持します。Excel専用出力・PNGは未実装です。
 
 同じ解析スコアからTop Nだけを切り替える際はAbLang2を再計算しない設計です。
 
@@ -87,3 +87,7 @@ epsilonの値、K-meansのseed/n_init、同点順位、近傍の自己点・距�
 最新論文・ポスターを主資料とし、2025年の修士論文を補助資料とします。[資料対照](SOURCE_COMPARISON.md)に根拠ページ、違い、要確認事項を記録します。旧KDE/HCやread数重みを、今回のK-means/k-NNへ混在させません。
 
 ユーザーから、未確認事項を明示したうえで妥当な実装判断を行う方針が承認されました。暫定値や運用上の選択は論文の設定と区別して記録し、結論への影響や入力の意味を判断できない場合は確認します。
+
+## 10. 現在の実行可能範囲
+
+`run_analysis.py`が入力から候補保存までを実行し、`reselect_candidates.py`が保存済みスコアから件数だけを変えます。入力の暫定条件は[INPUT_RULES](INPUT_RULES.md)、仕組み・操作・結果の読み方は[日本語解説書](GUIDE_JA.md)にまとめます。候補抽出の性能や抗原結合の妥当性を検証済みとは表示しません。
