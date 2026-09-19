@@ -129,3 +129,5 @@ GUIDE_JAに、仕組み・単位・架空のスコア計算例・設定根拠・
 K-means版の単一被験者アプリが対象。k-NN、GPU推論、複数人のQASAS用DB統合、解析取消、Excel専用出力は未実装。候補の抗原特異性・中和能や抽出性能を検証したものではない。元論文との厳密な条件一致は引き続き要確認とする。
 
 可視化・画面の実データ確認は開発中のソースで行い、各出力metadataへ実行ソースhashを記録した。コード・手順だけをGitHubへ反映し、研究画像を公開しない。
+
+対応する変更: [PR #4](https://github.com/YoheiFunakoshi/LM-QASAS-No.1/pull/4)。実装commitは `fbad1bd414fd3f714ab8ff86413ddf8a0872a96b`、branchは `codex/umap-local-ui`。PR #3の後続として記録し、mainへのmergeは行っていない。
