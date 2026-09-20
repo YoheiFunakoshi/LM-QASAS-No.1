@@ -33,6 +33,7 @@ Top Nは、重複を除いたCDR-H3アミノ酸配列の種類数です。同じ
 - [資料の優先順位と旧手法との差分](docs/SOURCE_COMPARISON.md)
 - [CDR-H3候補の件数指定](docs/SELECTION.md)
 - [共通UMAP・密度・候補の印の読み方](docs/VISUALIZATION.md)
+- [論文 Fig. 1cとの比較・再現性の確認方法](docs/FIGURE_COMPARISON.md)
 
 公式モデルをローカルに取得済みで、APIキーは不要です。解析はCPU上で実行します。同じスコアから候補数だけを変更する再選択機能もあります。pooling等の厳密な論文条件との一致、および候補の抗原特異性・抽出性能は未検証です。
 
