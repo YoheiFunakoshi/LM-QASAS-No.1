@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from lmqasas.inputs import InputValidationError, load_three_inputs
-from lmqasas.takara import check_workbook, parse_workbook
+from lmqasas.takara import POLICY, check_workbook, parse_workbook
 from lmqasas.pipeline import run_analysis, reselect
 from test_pipeline import SyntheticEncoder
 from xlsx_fixture import synthetic_xlsx, synthetic_row
@@ -23,6 +23,7 @@ class TakaraTests(unittest.TestCase):
         self.assertEqual(audit['source_sheet'], 'Back_data')
         self.assertEqual(audit['source_sheet_index'], 2)
         self.assertEqual(audit['input_format'], 'takara_rg_xlsx')
+        self.assertEqual(audit['input_policy'], 'takara-rg-hIGH20181210-v2-ignore-d')
         for names in [('Back_data','PRINT_hIGH'),('PRINT_hIGH','Sheet2')]:
             with self.subTest(names=names), self.assertRaises(InputValidationError):
                 check_workbook(synthetic_xlsx(sheet_names=names))
@@ -57,6 +58,8 @@ class TakaraTests(unittest.TestCase):
         # Vendor key includes D; our clone key does not.
         self.assertEqual(len(clones),1)
         self.assertEqual(clones[0]['source_rows'],[1,2,3])
+        self.assertEqual(audit['report_summary_unique_key'],['V','D','J','CDR3','C'])
+        self.assertFalse(audit['report_summary_key_is_clone_key'])
         for address in ('C5','C6','C7'):
             with self.subTest(address=address), self.assertRaises(InputValidationError):
                 self.parse(rows,overrides={address:99})
@@ -95,30 +98,80 @@ class TakaraTests(unittest.TestCase):
         self.assertEqual(audit['excluded_rows'],1)
         self.assertIn('cseg_unmapped_or_ambiguous',audit['exclusions'][0]['reasons'])
 
-    def test_d_copy_suffixes_are_accepted_without_modifying_source(self):
-        rows=[synthetic_row(D='IGHD2/OR15-2b*01,IGHD3/OR15-3a*01'),
+    def test_d_calls_and_function_labels_never_gate_otherwise_eligible_rows(self):
+        cases = [
+            {'D':None, 'D_function':None},
+            {'D':'x', 'D_function':'x'},
+            {'D':'unassigned D annotation', 'D_function':'F'},
+            {'D':'IGHD1-1*01', 'D_function':'ORF'},
+            {'D':'IGHD1-1*01', 'D_function':'P'},
+            {'D':'IGHD2/OR15-2b*01,IGHD3/OR15-3a*01', 'D_function':'F'},
+        ]
+        for changes in cases:
+            with self.subTest(changes=changes):
+                row=synthetic_row(**changes)
+                clones,audit=self.parse([row])
+                self.assertEqual(audit['accepted_rows'],1)
+                self.assertEqual(audit['excluded_rows'],0)
+                self.assertEqual(audit['reason_counts'],{})
+                self.assertEqual(clones[0]['raw_records'],[row])
+
+    def test_d_variations_merge_clone_preserve_raw_and_reconcile_vendor_summary(self):
+        rows=[synthetic_row(D=None,D_function=None),
+              synthetic_row(D='x',D_function='x'),
+              synthetic_row(D='IGHD1-1*01',D_function='ORF'),
+              synthetic_row(D='IGHD1-1*01',D_function='P'),
               synthetic_row(D='IGHD2/OR15-2b*02')]
         clones,audit=self.parse(rows)
-        self.assertEqual(audit['accepted_rows'],2)
+        self.assertEqual(audit['accepted_rows'],5)
         self.assertEqual(len(clones),1)
+        self.assertEqual(clones[0]['source_rows'],[1,2,3,4,5])
         self.assertEqual(clones[0]['raw_records'],rows)
+        self.assertEqual(audit['summary']['in_frame_unique'],4)
+        self.assertTrue(audit['report_summary_reconciled'])
+        # Ignoring D for eligibility must not weaken vendor-summary validation.
+        with self.assertRaisesRegex(InputValidationError,'does not reconcile'):
+            self.parse(rows,overrides={'C7':1})
+
+    def test_audit_identifies_vj_only_functional_gate_and_d_provenance(self):
+        _,audit=self.parse()
+        self.assertEqual(audit['input_policy'],POLICY)
+        self.assertEqual(audit['report_functional_vj_labels_required'],['F'])
+        self.assertNotIn('report_functional_vdj_labels_required',audit)
+        for field in ('d_annotation_used_for_eligibility','d_function_used_for_eligibility',
+                      'd_used_in_clone_key','full_vdj_functionality_verified'):
+            self.assertIs(audit[field],False)
+        self.assertIs(audit['raw_d_annotations_preserved'],True)
 
     def test_bad_rows_are_excluded_with_all_reasons(self):
         cases=[({'frame':'out-of-frame'},'frame_not_in_frame'),
                ({'V_function':'P'},'v_function_not_F'),
-               ({'D_function':'ORF'},'d_function_not_F'),
                ({'J_function':'x'},'j_function_not_F'),
                ({'CDR3':'CAS*W'},'cdr3_noncanonical'),
                ({'CDR3':'CASS'},'cdr3_too_short'),
                ({'C':'IGHGP*01'},'cseg_unmapped_or_ambiguous'),
                ({'V':'IGHV1-2*01,'},'v_annotation_invalid'),
-               ({'D':'x'},'d_annotation_invalid'),
                ({'J':'x'},'j_annotation_invalid')]
         for changes,reason in cases:
             with self.subTest(reason=reason):
                 clones,audit=self.parse([synthetic_row(),synthetic_row(**changes)])
                 self.assertEqual(audit['accepted_rows'],1)
                 self.assertIn(reason,audit['exclusions'][0]['reasons'])
+
+    def test_unknown_d_does_not_relax_vj_annotation_or_functional_gates(self):
+        for field,prefix in (('V','v'),('J','j')):
+            for value in (None,'x','unassigned gene'):
+                with self.subTest(field=field,value=value):
+                    _,audit=self.parse([synthetic_row(),synthetic_row(
+                        D=None,D_function=None,**{field:value})])
+                    self.assertEqual(audit['accepted_rows'],1)
+                    self.assertEqual(audit['exclusions'][0]['reasons'],[prefix+'_annotation_invalid'])
+            for value in (None,'x','ORF','P'):
+                with self.subTest(field=field+'_function',value=value):
+                    _,audit=self.parse([synthetic_row(),synthetic_row(
+                        D='x',D_function='x',**{field+'_function':value})])
+                    self.assertEqual(audit['accepted_rows'],1)
+                    self.assertEqual(audit['exclusions'][0]['reasons'],[prefix+'_function_not_F'])
 
     def test_count_is_metadata_not_clone_weight(self):
         clones,audit=self.parse([synthetic_row(count=100000),synthetic_row(count=1)])
@@ -133,6 +186,10 @@ class TakaraTests(unittest.TestCase):
             self.assertNotIn('private-input',str(caught.exception))
         with self.assertRaises(InputValidationError):
             self.parse(overrides={'O1':('formula','"CASSW"')})
+        # D is not a biological gate; workbook formulas still violate the raw-data contract.
+        for address in ('I1','J1'):
+            with self.subTest(address=address),self.assertRaises(InputValidationError):
+                self.parse(overrides={address:('formula','"x"')})
 
     def test_invalid_archive_and_size_limits(self):
         with self.assertRaises(InputValidationError):
@@ -157,6 +214,7 @@ class TakaraTests(unittest.TestCase):
             bundle=load_three_inputs(paths,'synthetic')
             self.assertEqual(len(bundle.clones),3)
             self.assertEqual(bundle.audit['policies']['input_format'],'takara_rg_xlsx')
+            self.assertEqual({s['input_policy'] for s in bundle.audit['samples'].values()},{POLICY})
             self.assertEqual(bundle.input_hashes,{k:hashlib.sha256(v).hexdigest() for k,v in before.items()})
             self.assertEqual(before,{p:path.read_bytes() for p,path in paths.items()})
             with patch('lmqasas.inputs._sha256_path',return_value='modified'),self.assertRaisesRegex(InputValidationError,'changed during reading'):
@@ -171,9 +229,11 @@ class TakaraTests(unittest.TestCase):
             root=Path(tmp)
             inputs=root/'input'; inputs.mkdir()
             paths={p:inputs/(p+'.xlsx') for p in ('Pre','Peak','Post')}
-            records={'Pre':[synthetic_row()],
-                     'Peak':[synthetic_row(),synthetic_row(CDR3='CAGGW'),synthetic_row(CDR3='CARFW')],
-                     'Post':[synthetic_row()]}
+            records={'Pre':[synthetic_row(D=None,D_function=None)],
+                     'Peak':[synthetic_row(D='x',D_function='x'),
+                             synthetic_row(CDR3='CAGGW',D_function='ORF'),
+                             synthetic_row(CDR3='CARFW',D_function='P')],
+                     'Post':[synthetic_row(D='unassigned',D_function='x')]}
             for phase,path in paths.items():path.write_bytes(synthetic_xlsx(records[phase]))
             encoder=SyntheticEncoder()
             result=run_analysis(paths,'synthetic',root/'unused_model',root/'outputs',
@@ -181,6 +241,8 @@ class TakaraTests(unittest.TestCase):
             meta=json.loads((result/'run_metadata.json').read_text())
             self.assertEqual(meta['status'],'completed')
             self.assertEqual(meta['input_format'],'takara_rg_xlsx')
+            audit=json.loads((result/'input_audit.json').read_text())
+            self.assertEqual({s['input_policy'] for s in audit['samples'].values()},{POLICY})
             self.assertEqual(meta['selection']['returned'],2)
             # Three Peak observations / (one Pre+epsilon) twice => 3.
             with (result/'selection_initial/candidates.csv').open(encoding='utf-8-sig') as f:

@@ -16,7 +16,7 @@ from zipfile import ZipFile, BadZipFile
 from .inputs import InputValidationError, _gene_set, _isotype, _CANONICAL_AA
 
 FORMAT = 'takara_rg_xlsx'
-POLICY = 'takara-rg-hIGH20181210-v1'
+POLICY = 'takara-rg-hIGH20181210-v2-ignore-d'
 FIELDS = ('V', 'V_function', 'D', 'D_function', 'J', 'J_function',
           'C', 'C_function', 'CDR3', 'frame', 'count')
 MAX_EXPANDED_BYTES = 256 * 1024 * 1024
@@ -155,6 +155,8 @@ def parse_workbook(data: bytes, path: Path, timepoint: str, subject: str):
             assigned_reads += int(raw['count'])
             if raw['frame'] == 'in-frame':
                 in_frame_reads += int(raw['count'])
+                # Reproduce the vendor's report total, not our biological clone key.
+                # Raw D remains part of that report-integrity check only.
                 in_frame_keys.add(tuple(raw[key] for key in ('V', 'D', 'J', 'CDR3', 'C')))
             reasons = []
             cdr3 = raw['CDR3']
@@ -164,7 +166,9 @@ def parse_workbook(data: bytes, path: Path, timepoint: str, subject: str):
                 reasons.append('cdr3_too_short')
             if raw['frame'] != 'in-frame':
                 reasons.append('frame_not_in_frame')
-            for field in ('V', 'D', 'J'):
+            # D calls and D-function labels are preserved as provenance only.
+            # Unknown/absent D must not discard an otherwise eligible V/J clone.
+            for field in ('V', 'J'):
                 if raw[field + '_function'] != 'F':
                     reasons.append(field.lower() + '_function_not_F')
             v_genes, j_genes = _calls(raw['V'], 'IGHV'), _calls(raw['J'], 'IGHJ')
@@ -172,8 +176,6 @@ def parse_workbook(data: bytes, path: Path, timepoint: str, subject: str):
                 reasons.append('v_annotation_invalid')
             if j_genes is None:
                 reasons.append('j_annotation_invalid')
-            if _calls(raw['D'], 'IGHD') is None:
-                reasons.append('d_annotation_invalid')
             isotype = _constant(raw['C'])
             if isotype is None:
                 reasons.append('cseg_unmapped_or_ambiguous')
@@ -203,7 +205,12 @@ def parse_workbook(data: bytes, path: Path, timepoint: str, subject: str):
                      reason_counts=dict(sorted(reasons_count.items())), exclusions=exclusions,
                      rows_with_multiple_v_genes=ambiguous_v, rows_with_multiple_j_genes=ambiguous_j,
                      last_data_row=last_data_row, report_summary_reconciled=True,
-                     report_functional_vdj_labels_required=['F'], report_frame_required='in-frame',
+                     report_functional_vj_labels_required=['F'], report_frame_required='in-frame',
+                     d_annotation_used_for_eligibility=False,
+                     d_function_used_for_eligibility=False, d_used_in_clone_key=False,
+                     raw_d_annotations_preserved=True,
+                     report_summary_unique_key=['V', 'D', 'J', 'CDR3', 'C'],
+                     report_summary_key_is_clone_key=False,
                      full_vdj_functionality_verified=False, nt_length_verified=False,
                      vendor_function_labels_independently_verified=False,
                      cdr3_boundaries_modified=False, counts_used_as_weights=False)

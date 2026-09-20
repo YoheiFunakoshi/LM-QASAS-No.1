@@ -128,6 +128,7 @@ def run_analysis(paths: dict[str, Path], subject: str, model_dir: Path, output_r
                 'input_hashes': bundle.input_hashes,
                 'input_format': bundle.audit['policies']['input_format'],
                 'input_policy_version': bundle.audit['policy_version'],
+                'input_policies': {phase: sample['input_policy'] for phase, sample in bundle.audit['samples'].items()},
                 'input_paths': {key: str(Path(path).resolve()) for key, path in paths.items()},
                 'python': platform.python_version(), 'network_guard': network_guard,
                 'packages': {name: importlib.metadata.version(name) for name in

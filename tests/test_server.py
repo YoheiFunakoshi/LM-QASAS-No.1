@@ -240,6 +240,20 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(state['stage'], 'interrupted')
         self.assertNotIn('CASSF', json.dumps(state))
 
+    def test_saved_d_policy_is_exposed_without_relabeling_or_private_provenance(self):
+        run = synthetic_run(self.root)
+        for policy in ('takara-rg-hIGH20181210-v1', 'takara-rg-hIGH20181210-v2-ignore-d'):
+            audit = read_json(run / 'input_audit.json')
+            audit['samples']['Pre']['input_policy'] = policy
+            write_atomic_json(run / 'input_audit.json', audit)
+            before = (run / 'input_audit.json').read_bytes()
+            detail = self.app.run_detail(run.name)
+            sample = detail['input_audit']['samples']['Pre']
+            self.assertEqual(sample['input_policy'], policy)
+            self.assertNotIn('source_file', sample)
+            self.assertNotIn('raw_records', sample)
+            self.assertEqual((run / 'input_audit.json').read_bytes(), before)
+
     def test_worker_completion_race_is_not_overwritten(self):
         self.app.submit('analyze', {'subject': 'SYNTHETIC', 'files': synthetic_uploads()})
 

@@ -34,6 +34,10 @@ function renderAudit(){
   const scroll=element('div',undefined,'table-scroll');scroll.append(table);node.append(scroll);
   for(const phase of ['Pre','Peak','Post']){
     const s=detail.input_audit?.samples?.[phase]||{},notes=[];
+    if(s.input_policy==='takara-rg-hIGH20181210-v2-ignore-d')notes.push('Dコール・D機能ラベル：採否に使用しない');
+    else if(s.input_policy==='takara-rg-hIGH20181210-v1')notes.push('旧条件：Dの注釈・機能も検査。この結果は旧条件のままです。新条件には3ファイルの新規解析が必要です');
+    else if(s.input_format==='cpm_csv')notes.push('Dコール：入力に列なし・採否に使用しない');
+    else if(s.input_format==='takara_rg_xlsx')notes.push('Dの採用条件：保存された記録で確認してください');
     if(s.isotype_granularity)notes.push('アイソタイプの粒度：'+(({subclass:'サブクラス',class:'クラス'})[s.isotype_granularity]||s.isotype_granularity));
     if(s.cdr3_definition)notes.push('CDR-H3の定義：'+(s.cdr3_definition==='as_reported_no_boundary_repair'?'入力の報告配列を使用（末端の補完なし）':s.cdr3_definition));
     if(notes.length)node.append(element('p',phase+' — '+notes.join(' / ')));

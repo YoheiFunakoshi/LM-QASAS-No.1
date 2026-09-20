@@ -2,7 +2,7 @@
 
 対応するHuman IGHレポートを、CPM CSVへ変換せず直接読み込みます。画面での案内名は「タカラ／RGレポートExcel（Back_data）」です。実際に認識するのは、Repertoire Genesisの `Repertoire Analysis Report (Human IGH)`、`Sheet ver. hIGH20181210` の下記レイアウトです。タカラ製品やRGレポート全般への対応を意味しません。
 
-実装は `src/lmqasas/takara.py`、形式名は `takara_rg_xlsx`、形式別policyは `takara-rg-hIGH20181210-v1` です。共通の入力監査versionは `input-v2` です。既存CPM CSVの条件は[入力規則](INPUT_RULES.md)で別に説明します。実施済みの検証と未実施の範囲は[開発記録](DEVELOPMENT_LOG.md)を参照してください。
+実装は `src/lmqasas/takara.py`、形式名は `takara_rg_xlsx`、形式別policyは `takara-rg-hIGH20181210-v2-ignore-d` です。共通の入力監査versionは `input-v2` です。既存CPM CSVの条件は[入力規則](INPUT_RULES.md)で別に説明します。実施済みの検証と未実施の範囲は[開発記録](DEVELOPMENT_LOG.md)を参照してください。
 
 ## 1. ファイル選択と対象シート
 
@@ -25,8 +25,8 @@
 | --- | --- | --- |
 | G | V gene候補 | 注釈の形式検査とclone key |
 | H | V機能ラベル | `F` への完全一致を要求 |
-| I | D gene候補 | 注釈の形式検査。clone keyには含めない |
-| J | D機能ラベル | `F` への完全一致を要求 |
+| I | D gene候補 | 元値を保持し、供給元の集計照合に使用。採否・clone keyには使わない |
+| J | D機能ラベル | 元値を保持。`F`、`x`、`ORF`等を採否に使わない |
 | K | J gene候補 | 注釈の形式検査とclone key |
 | L | J機能ラベル | `F` への完全一致を要求 |
 | M | C gene・isotype/subclass候補 | 単一に決まる対応済みsubclassをclone keyへ使用 |
@@ -53,19 +53,27 @@ C4:C7は保存された0以上の整数値が必要で、C4 ≥ C5 ≥ C6も確�
 
 ## 4. 採用条件と注釈の正規化
 
-採用行は、標準20アミノ酸のみで長さ5以上のCDR3、`frame=in-frame`、V/D/J機能ラベルがすべて `F`、形式の合うV/D/J候補、単一に決まる対応済みC subclassを満たす必要があります。CDR3の空白除去・大文字化・修復は行いません。
+採用行は、標準20アミノ酸のみで長さ5以上のCDR3、`frame=in-frame`、V/J機能ラベルがともに `F`、形式の合うV/J候補、単一に決まる対応済みC subclassを満たす必要があります。D注釈・D機能ラベルは採否条件にしません。CDR3の空白除去・大文字化・修復は行いません。
 
-V/D/J候補の区切りはコンマです。候補の前後の空白とallele表記を外し、重複を除き、並べ替えた集合として扱います。遺伝子名の内部にある単独の `/` は分割しません。V/Jの複数候補から先頭だけを選ぶことはなく、集合全体をclone keyへ残します。内部のkeyでは集合を `//` で表しますが、このレポート入力に `//` 区切りがある場合は受け付けません。
+正規化するV/J候補の区切りはコンマです。候補の前後の空白とallele表記を外し、重複を除き、並べ替えた集合として扱います。遺伝子名の内部にある単独の `/` は分割しません。V/Jの複数候補から先頭だけを選ぶことはなく、集合全体をclone keyへ残します。内部のkeyでは集合を `//` で表しますが、このレポートのV/J候補に `//` 区切りがある場合は受け付けません。
 
-D gene名末尾の小文字 `a` / `b` は、このレポートのコピー表記として形式検査で許容します。元注釈の大文字・小文字は変更せず、そのまま `raw_records` に保持します。Dは形式・機能ラベルの検査に使いますが、clone keyには含めません。
+Dは候補名・機能ラベルを解釈して行を除外せず、元の大文字・小文字や `x` 等の値をそのまま `raw_records` に保持します。Dを含む元 `(V,D,J,CDR3,C)` の集計照合は続けます。これはファイルの整合性検査であり、Dの採用判定ではありません。D列も数式・Excelエラーなど全列共通のファイル検査は免除しません。
 
 C候補は、[CPM CSVと同じ明示的なisotype対応表](INPUT_RULES.md#4-cpm-csvのcsegとisotypesubclass)を各候補に適用します。候補が複数あっても、alleleを外した後にすべて同じ対応済みsubclassへ決まる場合だけ採用します。複数のsubclass、未対応値、未解決値が含まれれば除外します。IgG/IgAのsubclassはまとめず、ファイル名からisotypeを強制しません。
 
 採用行を時点内の `(V候補集合, J候補集合, CDR3, isotype/subclass)` で集約し、各unique cloneを1点とします。Qのread数や頻度による点の複製・重み付けは行いません。
 
+### Dを採否に使わない理由
+
+D領域は短く、V(D)J再構成時の末端切除とN塩基付加、さらに体細胞超変異（SHM）などによって、どのD遺伝子に由来するかの割当が不確実になり得ます。[IgBLASTの一次論文](https://pmc.ncbi.nlm.nih.gov/articles/PMC3692102/)は、短いDとN付加・変異・類似D遺伝子による誤対応の問題を説明しています。
+
+V/Jを中心にしたクローン解析は一般的な選択肢です。例えば[Change-O DefineClonesの公式説明](https://changeo.readthedocs.io/en/stable/tools/DefineClones.html)はV/Jとjunction長でグループ化し、D callを必須入力にしていません。これはV/J中心の考え方を示す例で、本アプリと同じ推定手法を使うという意味ではありません。また、全ての解析でDを使わない、あるいはD割当が常に不可能という一般化はしません。
+
+本アプリでは利用者の明示承認によりDを採否に使わない運用を選びました。論文5.3のfunctional V/D/Jという記載との対応、元解析でのD未解決値の処理は未確認として残します。供給ラベル `x` をORFやpseudogeneと同義には扱いません。
+
 ## 5. 入力元の注釈で確認できる範囲
 
-`F` と `in-frame` は、レポートで供給された注釈への採用条件です。これらを独立に再注釈・検証したという意味ではありません。特に、この形式にはCDR3塩基配列、全VDJ塩基配列、独立した全VDJ productive判定、全VDJのstop注釈がありません。`F` の意味を独立したベンダー資料で確認したことにもなりません。
+V/Jの `F` と `in-frame` は、レポートで供給された注釈への採用条件です。これらを独立に再注釈・検証したという意味ではありません。特に、この形式にはCDR3塩基配列、全VDJ塩基配列、独立した全VDJ productive判定、全VDJのstop注釈がありません。`F` の意味を独立したベンダー資料で確認したことにもなりません。
 
 CDR3はO列のまま使用します。末端C/Wの有無を新たな採用条件にせず、C/Wの追加・削除も行いません。このレポートとCPMのCDR3境界定義が同一かは未確認です。Excelの読み枠ラベルを `WithConserved_NoStop` に置換したり、配列長の3倍を入力元のNTlengthとして作ったりしません。
 
@@ -85,7 +93,7 @@ counts_used_as_weights: false
 
 各cloneに `source_file`、`source_sheet`、`source_columns`、最初の採用行を示す `source_row`、集約した全行の `source_rows`、採用行の元セル値を持つ `raw_records` を保存します。Excelの行番号は `Back_data` の実際の行番号で、1行目もデータです。入力元のV/D/J/C・機能ラベル・CDR3・frame・countを保存し、clone keyの正規化で元セル値を置き換えません。
 
-`input_audit.json` は入力形式、policy、シート・列、寸法の再設定、採用・除外理由、レポート集計との照合結果を記録します。主な除外理由は `cdr3_noncanonical`、`cdr3_too_short`、`frame_not_in_frame`、`v_function_not_F`、`d_function_not_F`、`j_function_not_F`、`v_annotation_invalid`、`d_annotation_invalid`、`j_annotation_invalid`、`cseg_unmapped_or_ambiguous` です。1行に複数理由が付くことがあります。
+`input_audit.json` は入力形式、policy、シート・列、寸法の再設定、採用・除外理由、レポート集計との照合結果を記録します。主な除外理由は `cdr3_noncanonical`、`cdr3_too_short`、`frame_not_in_frame`、`v_function_not_F`、`j_function_not_F`、`v_annotation_invalid`、`j_annotation_invalid`、`cseg_unmapped_or_ambiguous` です。1行に複数理由が付くことがあります。
 
 読込前後と解析の終了時に入力hashを照合します。原本の保存・改変・数式計算・外部リンク更新は行いません。形式不一致、集計不一致、破損、上限超過などで停止した場合は、原本を直接直さず、対応形式と必要な情報を確認します。入力検査でrunフォルダー作成前に停止すると、監査ファイル自体が保存されないことがあります。
 
@@ -108,3 +116,9 @@ Excel読込には展開後合計256 MiB、ZIP内4,096項目、シート走査250
 ```
 
 その他の解析条件・候補数変更・結果の確認は[日本語解説書](GUIDE_JA.md)の6〜7節と共通です。入力形式や採用条件を変える場合は、保存済みrunの再選択ではなく新しい解析を実行します。
+
+## 8. 旧policyの結果を扱うとき
+
+旧 `takara-rg-hIGH20181210-v1` はV/D/Jの機能と注釈を採否に使いました。現在の `takara-rg-hIGH20181210-v2-ignore-d` はDの2条件だけを外します。共通監査の `input-v2` だけで区別せず、各時点の形式別policyを確認してください。
+
+旧runの入力監査・clone・score・図は変更しません。Top Nの件数変更や保存済み図の再表示は旧runの再利用であり、新policyへの移行ではありません。新しい条件で候補を選ぶには、3時点の入力から別のrunを作成します。

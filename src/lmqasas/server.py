@@ -359,7 +359,9 @@ class Application:
         allowed_sample_fields = {'total_rows', 'accepted_rows', 'excluded_rows', 'clone_count', 'merged_rows',
                                  'reason_counts', 'rows_with_multiple_v_genes', 'rows_with_multiple_j_genes',
                                  'source_unchanged_after_read', 'full_vdj_functionality_verified',
-                                 'input_format', 'source_sheet', 'isotype_granularity', 'cdr3_definition'}
+                                 'input_format', 'input_policy', 'source_sheet', 'isotype_granularity', 'cdr3_definition',
+                                 'd_annotation_used_for_eligibility', 'd_function_used_for_eligibility',
+                                 'd_used_in_clone_key', 'report_functional_vj_labels_required'}
         safe_audit = {'samples': {key: {k: v for k, v in sample.items() if k in allowed_sample_fields}
                                    for key, sample in audit.get('samples', {}).items()},
                       'policies': audit.get('policies', {}), 'limitations': audit.get('limitations', [])}
