@@ -228,6 +228,16 @@ $env:PYTHONUTF8 = '1'
 
 `--projection-dir`を省略すると、新しいUMAP座標を作ります。件数だけを比較したい場合は、既存のprojectionを指定して座標・背景を共通にしてください。新規作成のUMAP条件は`--n-neighbors`、`--min-dist`、`--seed`、`--n-epochs`で指定できます。既存projectionを指定した際はその保存条件を使い、これらの引数で座標を作り直すことはありません。
 
+### 6.6 論文図と並べて確認する
+
+見た目の違いの原因を確認するときは、[論文Methodsと現行実装の照合](METHODS_REVIEW.md)を参照します。入力clone集合、モデルの平均方法、UMAP、KDEの順で条件を確認し、背景の形と候補の選択条件を区別します。
+
+保存済みUMAPと参照画像を並べる補助スクリプトを追加しました。[論文図との比較手順](FIGURE_COMPARISON.md)に実行例と、赤点・候補の印・座標・密度の違いを説明しています。比較画像は新しい出力先へ保存し、元解析を再計算しません。画像を作れたことと論文の再現確認は別です。実画像と個別の考察はローカルだけに保存します。
+
+### 6.7 Dの採用条件による見え方を比べる
+
+[Dの条件を外した比較手順](D_FILTER_COMPARISON.md)から、保存済みExcel解析を起点とした感度確認を実行できます。D以外の採用条件を維持し、追加配列だけをAbLang2で処理して共通UMAPを再計算します。旧図との比較と、新しい同一座標上の集合比較を作ります。アプリの標準設定や候補一覧を変更する操作ではありません。
+
 ## 7. どのファイルを見ればよいか
 
 runごとに`outputs/run_日時_ID/`を作ります。日時はUTCで、末尾に識別用の文字列を付けます。各ファイルは同じrunの組として保存してください。
@@ -306,6 +316,7 @@ GitHubの`main`は、PRがmergeされるまで新機能を含まない場合が�
 | ローカル操作画面を起動する場所 | `Start-LMQASAS.cmd`、`scripts/start_app.py` |
 | UMAP図・背景色・候補の印の意味 | [可視化の解説](VISUALIZATION.md) |
 | コマンドでUMAP図を作る場所 | `scripts/visualize_run.py` |
+| 論文図と並べて条件差を確認する場所 | [比較手順](FIGURE_COMPARISON.md)、`scripts/compare_reference_figure.py` |
 | 保存済みスコアから件数を変更する場所 | `scripts/reselect_candidates.py` |
 | 解析と選択の処理本体 | `src/lmqasas/`。Top Nの選択は`selection.py` |
 | モデル推論・スコア・保存の対応 | `embeddings.py`・`scoring.py`・`pipeline.py` |
