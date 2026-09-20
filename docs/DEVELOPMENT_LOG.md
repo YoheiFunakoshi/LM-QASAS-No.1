@@ -183,3 +183,5 @@ CDR3末端を補修せず、CPMのType、NT配列・NTlength、全行のFrequenc
 - 原本・資料と既存解析成果物を保存済みhashと照合した。比較画像、配列、検体情報、個別集計、hash、詳細監査はGit管理外のローカル記録に保存する。
 
 本変更は比較用の作図と記録の追加であり、論文の厳密な再現を達成したものではない。前処理・モデル・可視化・DB照合の条件差を解消する確認が引き続き必要である。
+
+対応する変更: [PR #6](https://github.com/YoheiFunakoshi/LM-QASAS-No.1/pull/6)。実装commitは `06a82a56bb867fc680b8544465b0324420ed4364`、branchは `codex/figure-reference-comparison`。PR #5の後続として記録し、mainへのmergeは行っていない。
