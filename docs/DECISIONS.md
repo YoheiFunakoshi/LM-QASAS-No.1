@@ -137,3 +137,7 @@ D014に基づき、[入力集合とclone定義](INPUT_SET_REVIEW.md)だけを確
 ## 2026-09-20: min_distとKDE帯域幅を別々に比較
 
 利用者の追加候補の試行依頼に基づき、[min_dist](UMAP_MINDIST_REVIEW.md)を0.1・0.3・0.5の2seedで比較し、続いて現行座標を固定した[KDE帯域幅](KDE_BANDWIDTH_REVIEW.md)を0.5倍・1倍・2倍で比較した。後者にmin_dist比較の任意の結果を採用せず、現行基準座標を使用する。全clone・入力条件・候補順位を保持し、標準値は変更しない。初期配置と距離尺度は今後の独立比較候補であり、今回未実施。
+
+## 2026-09-20: 初期配置・距離尺度は独立に評価し、fallbackを隠さない
+
+利用者の継続指示に基づき、random/spectralとcosine/Euclideanを同時に変えず[独立比較](UMAP_INIT_METRIC_REVIEW.md)とした。全条件を両方の高次元距離で診断し、近さの定義の変更と投影による変化を区別する。spectralのsolver fallbackは既定で停止し、調査目的で明示的に保持する場合も `completed_with_fallback` として正常成功と区別する。初回停止記録は保持する。全clone・入力条件・候補順位と標準初期配置・距離尺度は変更しない。
