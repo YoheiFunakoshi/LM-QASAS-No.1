@@ -74,3 +74,7 @@ Top Nは合意済みです。他の事項は確定・暫定・要確認を区別
 ## 2026-09-20: min_distと固定座標でのKDE比較を完了
 
 現行embedding・入力集合でmin_distのみを比較し、別の実験として現行UMAP座標を固定してKDE帯域幅だけを比較した。2seedを両方表示し、数値検算と原本保全を確認した。標準設定を維持し、次の候補は初期配置random/spectral、その次に距離尺度cosine/Euclideanとする。これらは未実施であり、見た目だけによる設定採用や元法の復元とは区別する。[min_dist手順](UMAP_MINDIST_REVIEW.md)、[KDE手順](KDE_BANDWIDTH_REVIEW.md)。
+
+## 2026-09-20: 初期配置と距離尺度の比較を実施
+
+現行random/cosine、spectral/cosine、random/Euclideanを2seedで比較した。[方法と警告の扱い](UMAP_INIT_METRIC_REVIEW.md)。各実験は1要因だけを変え、全clone・元embeddingを保持した。spectralのsolver fallbackを検知して停止する既定動作と、明示した参考結果として保存する手順を区別する。標準設定は維持する。次の候補は現行random/cosineでの最適化回数200/500/1000の比較で、この比較はまだ実施していない。spectralの失敗箇所の特定、共同研究者の回答との照合は別の未解決事項とする。
