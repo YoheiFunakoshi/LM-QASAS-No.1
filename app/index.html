@@ -23,9 +23,10 @@
           <form id="analysisForm">
             <label for="subject">解析用の識別名 <span class="optional">氏名は使わない</span></label><input id="subject" name="subject" type="text" placeholder="例：S001" maxlength="100" required autocomplete="off">
             <div class="file-list">
-              <label class="file-box" for="preFile"><span class="phase"><b>Pre</b><small>前の時点</small></span><span class="file-text" id="preName">CSVを選択</span><input id="preFile" type="file" accept=".csv,text/csv" required></label>
-              <label class="file-box" for="peakFile"><span class="phase"><b>Peak</b><small>ピーク時点</small></span><span class="file-text" id="peakName">CSVを選択</span><input id="peakFile" type="file" accept=".csv,text/csv" required></label>
-              <label class="file-box" for="postFile"><span class="phase"><b>Post</b><small>後の時点</small></span><span class="file-text" id="postName">CSVを選択</span><input id="postFile" type="file" accept=".csv,text/csv" required></label>
+              <label class="file-box" for="preFile"><span class="phase"><b>Pre</b><small>前の時点</small></span><span class="file-text" id="preName">CSV / Excelを選択</span><input id="preFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-describedby="inputFormats"></label>
+              <label class="file-box" for="peakFile"><span class="phase"><b>Peak</b><small>ピーク時点</small></span><span class="file-text" id="peakName">CSV / Excelを選択</span><input id="peakFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-describedby="inputFormats"></label>
+              <label class="file-box" for="postFile"><span class="phase"><b>Post</b><small>後の時点</small></span><span class="file-text" id="postName">CSV / Excelを選択</span><input id="postFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-describedby="inputFormats"></label>
+              <p id="inputFormats" class="hint">3時点を同じ形式で選択：CPM CSV、またはタカラ／RGレポートExcel（.xlsx）。Excelは2枚目のシート（Back_data）を使用します。拡張子と表の形式を自動で確認します。1ファイル20 MiBまで。</p>
             </div>
             <label for="newTopN">抽出するCDR-H3の種類数</label>
             <div class="presets" aria-label="新規解析の候補数"><button type="button" data-target="newTopN" data-count="300">300</button><button type="button" data-target="newTopN" data-count="500">500</button><button type="button" data-target="newTopN" data-count="1000" aria-pressed="true">1,000</button></div>
@@ -39,7 +40,7 @@
               <label>CPUの並列数<input id="threads" type="number" value="4" min="1" step="1" required></label>
             </div></details>
             <button id="analyze" class="primary full" type="submit">解析を開始 <span aria-hidden="true">→</span></button>
-            <p class="hint privacy">元ファイルは変更しません。選んだCSVのコピーをこのPC内に保存して処理します。</p>
+            <p class="hint privacy">元ファイルは変更しません。選んだCSV / ExcelのコピーをこのPC内に保存して処理します。</p>
           </form>
         </section>
       </aside>
@@ -48,7 +49,7 @@
         <section class="panel figure-panel">
           <div class="result-heading"><div><p class="eyebrow">REPERTOIRE OVERVIEW</p><h2 id="resultTitle">解析結果</h2></div><span id="runBadge" class="tag">結果を選択してください</span></div>
           <div id="metrics" class="metrics" hidden></div>
-          <div id="plotEmpty" class="empty-state"><div class="empty-mark" aria-hidden="true">Pre <span>―</span> Peak <span>―</span> Post</div><h3>3時点を、同じ座標で比較</h3><p>保存した結果を開くか、3つのCSVを選んで解析を開始してください。</p><button id="visualize" class="secondary" type="button" disabled>共通UMAPを作る</button></div>
+          <div id="plotEmpty" class="empty-state"><div class="empty-mark" aria-hidden="true">Pre <span>―</span> Peak <span>―</span> Post</div><h3>3時点を、同じ座標で比較</h3><p>保存した結果を開くか、Pre・Peak・PostのCSV / Excelを選んで解析を開始してください。</p><button id="visualize" class="secondary" type="button" disabled>共通UMAPを作る</button></div>
           <figure id="plotFigure" hidden><a id="plotLink" target="_blank" rel="noopener" aria-label="UMAP画像を拡大して開く"><img id="plot" alt="Pre・Peak・Postを共通のUMAP座標と密度の色尺度で比較し、Peakで選んだCDR-H3の各時点の位置を印で示した図"></a><figcaption><span class="marker" aria-hidden="true">○</span> 印：Peakで選ばれたCDR-H3の各時点の位置。背景：各時点で正規化したcloneの密度。<br>候補のスコアは元の480次元で計算しています。UMAPは分布を確認するための表示です。</figcaption></figure>
           <div id="figureActions" class="figure-actions" hidden><span class="hint">画像をクリックすると拡大できます。</span><a id="pngDownload" class="text-link" download>PNGを保存 ↓</a></div>
         </section>

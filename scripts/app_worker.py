@@ -7,7 +7,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from lmqasas.server import checked_id, confined, read_json, utc_now, write_atomic_json
+from lmqasas.server import checked_id, confined, read_json, resolve_uploaded_inputs, utc_now, write_atomic_json
 
 
 def main() -> int:
@@ -54,7 +54,7 @@ def main() -> int:
 
         if kind == 'analyze':
             upload = confined(ROOT / 'local_records/ui_inputs', checked_id(params['input_id'], 'job_'))
-            paths = {phase: confined(upload, phase + '.csv') for phase in ('Pre', 'Peak', 'Post')}
+            paths = resolve_uploaded_inputs(upload)
             options = {key: params[key] for key in ('top_n', 'n_clusters', 'epsilon', 'seed', 'n_init', 'batch_size', 'threads')}
             run = run_analysis(paths, params['subject'], ROOT / 'models/ABLANG-2-paired', ROOT / 'outputs',
                                **options, progress=progress, network_guard=True)
@@ -106,7 +106,7 @@ def main() -> int:
         elif isinstance(exc, FileNotFoundError):
             error = 'モデル・入力または保存結果のファイルが見つかりません。日本語解説書の準備と保存先を確認してください。'
         elif stage in ('loading', 'validated', 'embedding', 'kmeans'):
-            error = '入力CSV・採用行数・Kなどの設定を確認してください。'
+            error = '入力CSV / Excel・採用行数・Kなどの設定を確認してください。'
         else:
             error = '画像または結果の作成に失敗しました。保存履歴で解析結果を確認してください。'
         job.update(status='failed', stage='failed', progress=None, error=error,

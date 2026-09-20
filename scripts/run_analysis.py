@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     for phase in ('pre', 'peak', 'post'):
-        parser.add_argument('--' + phase, type=Path, required=True)
+        parser.add_argument('--' + phase, type=Path, required=True,
+                            help='CPM .csv or supported Takara/RG .xlsx (same format at all timepoints)')
     parser.add_argument('--subject', required=True, help='Local pseudonymous subject label')
     parser.add_argument('--model-dir', type=Path, default=ROOT / 'models/ABLANG-2-paired')
     parser.add_argument('--output-root', type=Path, default=ROOT / 'outputs')

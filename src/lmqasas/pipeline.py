@@ -1,4 +1,4 @@
-"""Local, traceable CSV -> clone -> embedding -> K-means -> candidate workflow."""
+"""Local CSV/XLSX -> clone -> embedding -> K-means -> candidate workflow."""
 from __future__ import annotations
 
 import csv
@@ -126,6 +126,8 @@ def run_analysis(paths: dict[str, Path], subject: str, model_dir: Path, output_r
                 'parameters': {'top_n': top_n, 'n_clusters': n_clusters, 'epsilon': epsilon,
                                'seed': seed, 'n_init': n_init, 'batch_size': batch_size, 'threads': threads},
                 'input_hashes': bundle.input_hashes,
+                'input_format': bundle.audit['policies']['input_format'],
+                'input_policy_version': bundle.audit['policy_version'],
                 'input_paths': {key: str(Path(path).resolve()) for key, path in paths.items()},
                 'python': platform.python_version(), 'network_guard': network_guard,
                 'packages': {name: importlib.metadata.version(name) for name in
@@ -133,6 +135,9 @@ def run_analysis(paths: dict[str, Path], subject: str, model_dir: Path, output_r
                 'validation_status': 'exploratory_candidates_not_antigen_binding_validation',
                 'paper_equivalence': 'unconfirmed_provisional_preprocessing_pooling_and_defaults',
                 'outputs_private': True}
+    if metadata['input_format'] == 'takara_rg_xlsx':
+        metadata['packages'].update({name: importlib.metadata.version(name)
+                                     for name in ('openpyxl', 'et-xmlfile', 'defusedxml')})
     folder.mkdir(parents=True, exist_ok=False)
     protect_output(folder)
     try:
