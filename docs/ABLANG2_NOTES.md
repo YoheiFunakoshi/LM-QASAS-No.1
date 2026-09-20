@@ -67,3 +67,7 @@ CUDA 12/13系の新しい構成に移行するには、ドライバーとの互�
 `embeddings.py`で公式モデルのhashを確認し、CPU・標準batch size 32・4 threadsでCDR-H3を処理します。同じCDR-H3を一度だけ計算し、clone観測は統合せずembedding indexを対応させます。配列長順にbatch化してpaddingを減らし、結果を元のindexへ戻します。seed・dtype・pooling・実際のモデルmanifestを各runに記録します。
 
 `run_analysis.py`でPythonソケット通信を禁止し、既存のローカルモデルだけをロードします。このコマンドからモデルの自動取得や追加学習は行いません。モデル照合の共通処理は`checkpoint.py`です。
+
+## 2026-09-20: 同一hidden statesから平均範囲だけを比較
+
+公式seqcoding相当の全非padding平均と、同じrescoding出力のCDR-H3残基のみ平均を比較した。平均前にfloat64へ統一し、長さLに対して出力shape=L+3、残基slice=[1:1+L]を全件確認した。再計算した公式相当平均は保存cacheと全成分で一致した。モデル入力・重み・出力層を変えていない。独立UMAPと固定KDEでの比較および限界は[平均方法の比較記録](POOLING_REVIEW.md)を参照する。現行アプリの平均方法は変更しない。
