@@ -70,3 +70,7 @@ Top Nは合意済みです。他の事項は確定・暫定・要確認を区別
 ## 2026-09-20: UMAP近傍数の比較を完了
 
 [近傍数の比較](UMAP_NEIGHBORS_REVIEW.md)として、現行embedding・入力集合を固定し、15・30・50と2seedの6条件を作図した。数値診断・由来・原本不変を確認し、標準値は維持する。次に検討する要因はmin_distで、その比較とKDE帯域幅の探索は本段階では未実施。元条件の回答待ちと、当方の感度分析を区別する。
+
+## 2026-09-20: min_distと固定座標でのKDE比較を完了
+
+現行embedding・入力集合でmin_distのみを比較し、別の実験として現行UMAP座標を固定してKDE帯域幅だけを比較した。2seedを両方表示し、数値検算と原本保全を確認した。標準設定を維持し、次の候補は初期配置random/spectral、その次に距離尺度cosine/Euclideanとする。これらは未実施であり、見た目だけによる設定採用や元法の復元とは区別する。[min_dist手順](UMAP_MINDIST_REVIEW.md)、[KDE手順](KDE_BANDWIDTH_REVIEW.md)。
