@@ -324,6 +324,7 @@ GitHubの`main`は、PRがmergeされるまで新機能を含まない場合が�
 | UMAP図・背景色・候補の印の意味 | [可視化の解説](VISUALIZATION.md) |
 | コマンドでUMAP図を作る場所 | `scripts/visualize_run.py` |
 | 論文図と並べて条件差を確認する場所 | [比較手順](FIGURE_COMPARISON.md)、`scripts/compare_reference_figure.py` |
+| 共同研究者へ設定を確認するメール案 | [送信用の確認表](COLLABORATOR_QUESTIONS.md)。コード・設定ファイルで回答を代替可能 |
 | 保存済みスコアから件数を変更する場所 | `scripts/reselect_candidates.py` |
 | 解析と選択の処理本体 | `src/lmqasas/`。Top Nの選択は`selection.py` |
 | モデル推論・スコア・保存の対応 | `embeddings.py`・`scoring.py`・`pipeline.py` |
