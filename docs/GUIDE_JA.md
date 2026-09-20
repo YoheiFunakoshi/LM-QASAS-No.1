@@ -235,6 +235,8 @@ $env:PYTHONUTF8 = '1'
 
 見た目の違いの原因を確認するときは、[論文Methodsと現行実装の照合](METHODS_REVIEW.md)を参照します。入力clone集合、モデルの平均方法、UMAP、KDEの順で条件を確認し、背景の形と候補の選択条件を区別します。
 
+[第1段階：背景へ入れるクローン集合](INPUT_SET_REVIEW.md)の確認を終えました。背景は元表の全行ではなく、採用条件を満たして整理した全クローンです。Top Nを1,000にしても背景を1,000種類に絞りません。論文の基本方針は同じですが、最低read数やisotype粒度など元解析の細部は未確認です。現在の入力条件を固定し、見た目だけを理由に変更しない方針で一つずつ調べます。
+
 保存済みUMAPと参照画像を並べる補助スクリプトを追加しました。[論文図との比較手順](FIGURE_COMPARISON.md)に実行例と、赤点・候補の印・座標・密度の違いを説明しています。比較画像は新しい出力先へ保存し、元解析を再計算しません。画像を作れたことと論文の再現確認は別です。実画像と個別の考察はローカルだけに保存します。
 
 ### 6.7 Dを採否に使わない新規解析と、旧結果との比較
@@ -322,6 +324,7 @@ GitHubの`main`は、PRがmergeされるまで新機能を含まない場合が�
 | UMAP図・背景色・候補の印の意味 | [可視化の解説](VISUALIZATION.md) |
 | コマンドでUMAP図を作る場所 | `scripts/visualize_run.py` |
 | 論文図と並べて条件差を確認する場所 | [比較手順](FIGURE_COMPARISON.md)、`scripts/compare_reference_figure.py` |
+| 共同研究者へ設定を確認するメール案 | [送信用の確認表](COLLABORATOR_QUESTIONS.md)。コード・設定ファイルで回答を代替可能 |
 | 保存済みスコアから件数を変更する場所 | `scripts/reselect_candidates.py` |
 | 解析と選択の処理本体 | `src/lmqasas/`。Top Nの選択は`selection.py` |
 | モデル推論・スコア・保存の対応 | `embeddings.py`・`scoring.py`・`pipeline.py` |
