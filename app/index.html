@@ -27,6 +27,7 @@
               <label class="file-box" for="peakFile"><span class="phase"><b>Peak</b><small>ピーク時点</small></span><span class="file-text" id="peakName">CSV / Excelを選択</span><input id="peakFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-describedby="inputFormats"></label>
               <label class="file-box" for="postFile"><span class="phase"><b>Post</b><small>後の時点</small></span><span class="file-text" id="postName">CSV / Excelを選択</span><input id="postFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required aria-describedby="inputFormats"></label>
               <p id="inputFormats" class="hint">3時点を同じ形式で選択：CPM CSV、またはタカラ／RGレポートExcel（.xlsx）。Excelは2枚目のシート（Back_data）を使用します。拡張子と表の形式を自動で確認します。1ファイル20 MiBまで。</p>
+              <p class="hint">新規解析ではDコールを採否に使いません。クローンはV/J・CDR-H3・アイソタイプで定義します。</p>
             </div>
             <label for="newTopN">抽出するCDR-H3の種類数</label>
             <div class="presets" aria-label="新規解析の候補数"><button type="button" data-target="newTopN" data-count="300">300</button><button type="button" data-target="newTopN" data-count="500">500</button><button type="button" data-target="newTopN" data-count="1000" aria-pressed="true">1,000</button></div>

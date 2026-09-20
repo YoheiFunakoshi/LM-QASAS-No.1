@@ -44,7 +44,7 @@ AbLang2へ入力するのはCDR-H3アミノ酸配列のみです。論文で記�
 
 元ファイルを編集せず、除外・変換を行う場合は理由、対象件数、元行への対応をローカルログへ残します。ファイル名からisotypeを強制したり、複数遺伝子候補から無断で先頭だけを採用したりしません。
 
-CPMは既存の`Type=WithConserved_NoStop`、AA/NT記載長などの条件を使います。Excelは入力元の`frame=in-frame`とV/D/Jの機能ラベル`F`への完全一致、標準20アミノ酸・長さ5以上、V/D/J注釈の形式、単一に決まるC subclassを採用条件とします。Excelのコンマ区切りV/J候補は未解決の集合として保持し、alleleを外しても複数subclassが残るC注釈は除外します。Dは形式と機能ラベルの検査に用い、共通のclone keyには加えません。C機能ラベルは元情報として保存しますが、V/D/Jと同じ`F`条件は追加しません。
+CPMは既存の`Type=WithConserved_NoStop`、AA/NT記載長などの条件を使います。Excelの新規解析は `takara-rg-hIGH20181210-v2-ignore-d` とし、入力元の`frame=in-frame`とV/Jの機能ラベル`F`への完全一致、標準20アミノ酸・長さ5以上、有効なV/J注釈、単一に決まるC subclassを採用条件とします。Excelのコンマ区切りV/J候補は未解決の集合として保持し、alleleを外しても複数subclassが残るC注釈は除外します。Dの注釈・機能は採否にもclone keyにも使わず、生の元情報を保存します。Dを含む供給元集計との照合はファイル整合性のために維持します。C機能ラベルも元情報として保存しますが、`F`条件は追加しません。
 
 ExcelのCDR3は入力どおりに保存し、末端C/Wの追加・削除、CPMのTypeへの置換、NT配列・NT長・全行のFrequencyの補完は行いません。機能ラベルと読み枠は供給された注釈への条件であり、独立した再注釈や全VDJの機能性検証ではありません。形式間のCDR3境界定義の同等性も未確認です。両形式で`full_vdj_functionality_verified=false`を記録します。
 
@@ -78,7 +78,7 @@ S(C) = n_peak(C) / (n_pre(C) + epsilon) + n_peak(C) / (n_post(C) + epsilon)
 
 GUIまたはCLIで候補CSV、由来JSON、embedding/cluster labelsのNPY、clusterスコアCSV、入力監査・実行条件JSONを出力します。候補CSVは順位・CDR-H3・score・clone数・cluster IDを持ち、V/J/isotype・subject・全元行・生の元フィールドは由来JSONに保持します。可視化時は共通座標NPY、密度NPZ、PNG、表示条件JSONも別の新規フォルダーへ保存します。Excel専用出力は未実装です。
 
-同じ解析スコアからTop Nだけを切り替える際はAbLang2を再計算しない設計です。
+同じ解析スコアからTop Nだけを切り替える際はAbLang2を再計算しない設計です。旧runの入力policyも変えません。Dの採否条件を変えて候補を得るには新しい解析が必要で、旧runはそのまま保持します。
 
 ## 8. 実装段階
 

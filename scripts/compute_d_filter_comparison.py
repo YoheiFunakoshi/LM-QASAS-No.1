@@ -90,6 +90,27 @@ def read_without_d_gates(paths, hashes):
     return all_clones,audits
 
 
+def legacy_baseline_from_bundle(bundle, saved_audit):
+    """Reconstruct strict-v1 only for this historical comparison, never production."""
+    samples = saved_audit.get('samples', {})
+    if (set(samples) != set(PHASES) or any(
+            sample.get('input_policy') != 'takara-rg-hIGH20181210-v1'
+            for sample in samples.values())):
+        raise ValueError('D-filter comparison requires a saved strict-v1 Excel baseline, not a current v2 run.')
+    baseline = []
+    for clone in bundle.clones:
+        rows, records = [], []
+        for row, raw in zip(clone['source_rows'], clone['raw_records'], strict=True):
+            if raw['D_function'] == 'F' and takara._calls(raw['D'], 'IGHD') is not None:
+                rows.append(row)
+                records.append(raw)
+        if rows:
+            baseline.append({**clone, 'source_row': rows[0], 'source_rows': rows, 'raw_records': records})
+    # An ignored D row may have created a group before its first strict-v1 row.
+    baseline.sort(key=lambda clone: (PHASES.index(clone['timepoint']), clone['source_row']))
+    return baseline
+
+
 def fixed_grid_density(coordinates, phases, x, y, bandwidth):
     from sklearn.neighbors import KernelDensity
     coordinates=np.asarray(coordinates,dtype=np.float64)
@@ -127,8 +148,13 @@ def compute(run_dir, projection_dir, model_dir, output_dir):
     if input_hashes!=run['input_hashes']:raise ValueError('Inputs differ from saved baseline.')
     # This validates every raw row, schema, count and report summary before the alternate read.
     bundle=load_three_inputs(paths,run['subject'])
-    if [clone_key(c) for c in bundle.clones]!=[clone_key(c) for c in baseline]:
-        raise ValueError('Current baseline does not reproduce the saved clone order.')
+    audit_hash=run.get('artifact_sha256',{}).get('input_audit.json')
+    if not audit_hash:raise ValueError('Baseline input audit hash is required.')
+    _verify_sources(run_dir,{'input_audit.json':audit_hash})
+    source_hashes={**source_hashes,'input_audit.json':audit_hash}
+    legacy=legacy_baseline_from_bundle(bundle,read(run_dir/'input_audit.json'))
+    if [(clone_key(c),c['source_rows']) for c in legacy]!=[(clone_key(c),c['source_rows']) for c in baseline]:
+        raise ValueError('Historical strict-v1 baseline does not reproduce the saved clones and source rows.')
     variant,audit=read_without_d_gates(paths,input_hashes)
     variant_index={clone_key(c):i for i,c in enumerate(variant)}
     if len(variant_index)!=len(variant):raise ValueError('Duplicate variant clone keys.')

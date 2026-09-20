@@ -9,9 +9,11 @@
 | 入力形式 | 拡張子 | 形式別policy | 詳細 |
 | --- | --- | --- | --- |
 | CPM CSV | `.csv` | `cpm-csv-input-v1` | 本ページの1〜6節。従来の採用条件を維持 |
-| タカラ／RGレポートExcel（Back_data） | `.xlsx` | `takara-rg-hIGH20181210-v1` | [対応するHuman IGHレポートの規則](TAKARA_INPUT.md) |
+| タカラ／RGレポートExcel（Back_data） | `.xlsx` | `takara-rg-hIGH20181210-v2-ignore-d` | [対応するHuman IGHレポートの規則](TAKARA_INPUT.md) |
 
 どちらも時点内のclone keyはV/J候補集合・CDR3・isotype/subclassで、unique cloneを等重みで扱います。ただし、元の列・注釈と採用条件は形式ごとに異なります。Excelの`in-frame`をCSVの`WithConserved_NoStop`へ置換しません。Excel用のNTlengthやFrequencyを作ってCSV条件を通すこともありません。形式とpolicyは入力監査に残します。
+
+Excelの新policyではDの注釈・機能を採否とclone keyに使いません。V/Jなど他の条件と、Dを含む供給元の集計照合は維持します。旧policyの結果を新条件へ書き換えず、新規解析として実行します。本プロジェクトが対応するCPM CSV仕様にはD列がなく、CPMの入力条件は従来どおりです。詳細は[Excel規則](TAKARA_INPUT.md)を参照してください。
 
 ## 1. CPM CSVのファイルと列
 
