@@ -1,4 +1,4 @@
-"""Read-only, conservative CSV ingestion for one subject's three timepoints.
+"""Read-only CPM CSV / Takara-RG XLSX ingestion for three timepoints.
 
 The accepted Type label is a provisional input gate, not a claim that the
 whole VDJ sequence is functional. Cseg determines subclass; file names do not.
@@ -187,7 +187,7 @@ def _parse_csv(data: bytes, path: Path, timepoint: str, subject: str) -> tuple[l
 
 
 def load_three_inputs(paths: Mapping[str, Path], subject: str) -> InputBundle:
-    """Validate three CSVs, then collapse identical within-timepoint clone keys.
+    """Validate three same-format inputs and group within-timepoint clone keys.
 
     The header may be reordered, but it must contain exactly CSV_COLUMNS.
     source_row/source_rows refer to physical starting line numbers, header = 1.
@@ -214,12 +214,23 @@ def load_three_inputs(paths: Mapping[str, Path], subject: str) -> InputBundle:
     clones = []
     samples = {}
     hashes = {}
+    suffixes = {path.suffix.lower() for path in resolved.values()}
+    if len(suffixes) != 1 or not suffixes <= {'.csv', '.xlsx'}:
+        raise InputValidationError('Use three files of the same supported format: CPM CSV or Takara/RG XLSX.')
+    is_excel = suffixes == {'.xlsx'}
     for timepoint, path in resolved.items():
         try:
             data = path.read_bytes()
             before = hashlib.sha256(data).hexdigest()
             try:
-                sample_clones, sample_audit = _parse_csv(data, path, timepoint, subject)
+                if is_excel:
+                    from .takara import parse_workbook
+                    sample_clones, sample_audit = parse_workbook(data, path, timepoint, subject)
+                else:
+                    sample_clones, sample_audit = _parse_csv(data, path, timepoint, subject)
+                    sample_audit.update(input_format='cpm_csv', input_policy='cpm-csv-input-v1',
+                                        isotype_granularity='subclass',
+                                        cdr3_definition='as_reported_no_boundary_repair')
             finally:
                 if before != _sha256_path(path):
                     raise InputValidationError(f"{timepoint}: input changed during reading; results discarded.")
@@ -233,24 +244,32 @@ def load_three_inputs(paths: Mapping[str, Path], subject: str) -> InputBundle:
         clones=clones,
         input_hashes=hashes,
         audit={
-            "policy_version": "input-v1",
+            "policy_version": "input-v2",
             "samples": samples,
             "policies": {
-                "accepted_types": sorted(ACCEPTED_TYPES),
+                "input_format": 'takara_rg_xlsx' if is_excel else 'cpm_csv',
+                "accepted_types": None if is_excel else sorted(ACCEPTED_TYPES),
                 "minimum_cdr3_length": 5,
-                "nt_length_rule": "NTlength equals 3 times the observed CDR3 amino-acid length",
-                "gene_normalization": "strip surrounding annotation whitespace and alleles; sorted distinct // alternatives",
-                "isotype": "explicit Cseg mapping preserving subclass; filename ignored",
+                "nt_length_rule": 'not_available_not_synthesized' if is_excel else "NTlength equals 3 times the observed CDR3 amino-acid length",
+                "gene_normalization": ('strip annotation whitespace and alleles; sorted distinct comma alternatives'
+                                       if is_excel else 'strip surrounding annotation whitespace and alleles; sorted distinct // alternatives'),
+                "isotype": 'unambiguous C annotation after allele removal; subclass retained' if is_excel else "explicit Cseg mapping preserving subclass; filename ignored",
                 "clone_key": ["v_gene_annotation_set", "j_gene_annotation_set", "cdr3", "isotype"],
                 "counts_used_as_weights": False,
                 "full_vdj_functionality_verified": False,
             },
-            "limitations": [
+            "limitations": ([
+                'Excel source frame=in-frame and V/D/J labels=F are required, but not independently reannotated.',
+                'No source NT sequence or independent full-VDJ productivity result is available.',
+                'CDR3 is preserved as reported; vendor boundary equivalence with CPM is unconfirmed.',
+                'Multiple constant calls are accepted only when every allele maps to one subclass.',
+                'Counts do not weight clone observations; the top-50 ranking is not the repertoire input.',
+            ] if is_excel else [
                 "Type is an input quality label, not an isotype or independent proof of full VDJ functionality.",
                 "D-gene, VDJ frame, functional-gene and ORF/pseudogene status cannot be independently verified from these columns.",
                 "V/J alternatives remain unresolved annotation sets; different unresolved sets are different clone keys.",
                 "Cseg subclass granularity and allele removal are provisional implementation choices.",
                 "Counts units are unconfirmed; Counts and Frequency(%) do not weight clone observations.",
-            ],
+            ]),
         },
     )

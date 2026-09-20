@@ -1,7 +1,7 @@
 """Loopback-only, single-job HTTP interface for local research analysis.
 
 This server is intentionally not a network service. Uploaded inputs are copied
-to private, new directories; source CSVs and previous runs are never modified.
+to private, new directories; source files and previous runs are never modified.
 """
 from __future__ import annotations
 
@@ -152,33 +152,92 @@ def analysis_parameters(data: dict) -> dict:
 
 def decode_uploads(files) -> dict:
     if not isinstance(files, dict) or set(files) != set(PHASES):
-        raise ApiError(400, 'Pre・Peak・Postの3つのCSVを指定してください。')
+        raise ApiError(400, 'Pre・Peak・Postの3つのCSV / Excelを指定してください。')
     decoded = {}
     for phase in PHASES:
         item = files[phase]
         if not isinstance(item, dict):
-            raise ApiError(400, 'CSVの指定形式が不正です。')
+            raise ApiError(400, '入力ファイルの指定形式が不正です。')
         name, content = item.get('name'), item.get('base64')
-        if (not isinstance(name, str) or not name.lower().endswith('.csv') or len(name) > 255
+        if (not isinstance(name, str) or not name.lower().endswith(('.csv', '.xlsx')) or len(name) > 255
                 or any(c in name for c in '/\\\x00') or any(ord(c) < 32 for c in name)):
-            raise ApiError(400, 'CSVファイルを指定してください。')
+            raise ApiError(400, 'CPM CSV（.csv）またはタカラ／RGレポートExcel（.xlsx）を指定してください。')
         if not isinstance(content, str) or len(content) > 4 * ((MAX_FILE_BYTES + 2) // 3):
-            raise ApiError(413, 'CSVは1ファイル20 MiB以下にしてください。')
+            raise ApiError(413, '入力は1ファイル20 MiB以下にしてください。')
         try:
             raw = base64.b64decode(content, validate=True)
         except (ValueError, binascii.Error):
-            raise ApiError(400, 'CSVの転送形式が不正です。') from None
+            raise ApiError(400, '入力ファイルの転送形式が不正です。') from None
         if not raw or len(raw) > MAX_FILE_BYTES:
-            raise ApiError(413, 'CSVは空でない、20 MiB以下のファイルにしてください。')
-        try:
-            text = raw.decode('utf-8-sig')
-            header = next(csv.reader(io.StringIO(text, newline=''), strict=True), [])
-        except (UnicodeError, csv.Error):
-            raise ApiError(400, 'CSVの文字コードはUTF-8にしてください。') from None
-        if len(header) != len(CSV_COLUMNS) or set(header) != CSV_COLUMNS:
-            raise ApiError(400, 'CSVの列名が入力規則と一致しません。日本語解説書を確認してください。')
-        decoded[phase] = {'name': name, 'bytes': raw}
+            raise ApiError(413, '入力は空でない、20 MiB以下のファイルにしてください。')
+        extension = Path(name).suffix.lower()
+        if extension == '.csv':
+            try:
+                text = raw.decode('utf-8-sig')
+                header = next(csv.reader(io.StringIO(text, newline=''), strict=True), [])
+            except (UnicodeError, csv.Error):
+                raise ApiError(400, 'CSVの文字コードはUTF-8にしてください。') from None
+            if len(header) != len(CSV_COLUMNS) or set(header) != CSV_COLUMNS:
+                raise ApiError(400, 'CSVの列名が入力規則と一致しません。日本語解説書を確認してください。')
+        else:
+            from .inputs import InputValidationError
+            from .takara import check_workbook
+            try:
+                check_workbook(raw)
+            except InputValidationError:
+                raise ApiError(400, 'Excelの2枚目のシート（Back_data）の形式が入力規則と一致しません。日本語解説書を確認してください。') from None
+        decoded[phase] = {'name': name, 'bytes': raw, 'extension': extension}
+    if len({item['extension'] for item in decoded.values()}) != 1:
+        raise ApiError(400, '3時点は同じ入力形式でそろえてください。CSVとExcelは混在できません。')
     return decoded
+
+
+def resolve_uploaded_inputs(upload: Path) -> dict[str, Path]:
+    """Select the exact private upload copies and verify their saved manifest.
+
+    Older manifest-free jobs may contain only the three canonical CSVs.
+    No original filename or arbitrary manifest path is used for resolution.
+    """
+    manifest_path = upload / 'upload_manifest.json'
+    manifest = read_json(confined(upload, 'upload_manifest.json')) if manifest_path.exists() else None
+    if manifest is not None:
+        records = manifest.get('files') if isinstance(manifest, dict) else None
+        if not isinstance(records, dict) or set(records) != set(PHASES):
+            raise ApiError(400, '保存した入力ファイルの記録が不正です。')
+    paths = {}
+    for phase in PHASES:
+        candidates = [item for item in upload.iterdir()
+                      if item.name.lower() in {phase.lower() + '.csv', phase.lower() + '.xlsx'}]
+        if len(candidates) != 1:
+            raise ApiError(400, '各時点の保存した入力ファイルを1つに特定できません。')
+        if manifest is None:
+            copy_name = phase + '.csv'
+            record = None
+        else:
+            record = records[phase]
+            copy_name = record.get('copy_name') if isinstance(record, dict) else None
+            if copy_name not in (phase + '.csv', phase + '.xlsx'):
+                raise ApiError(400, '保存した入力ファイルの指定が不正です。')
+        if candidates[0].name != copy_name:
+            raise ApiError(400, '保存した入力ファイルと記録が一致しません。')
+        path = confined(upload, copy_name)
+        if not path.is_file():
+            raise ApiError(400, '保存した入力ファイルを確認してください。')
+        if record is not None:
+            expected_size = record.get('bytes')
+            expected_hash = record.get('sha256')
+            if (type(expected_size) is not int or expected_size < 1 or expected_size > MAX_FILE_BYTES
+                    or not isinstance(expected_hash, str) or not re.fullmatch('[0-9a-f]{64}', expected_hash)
+                    or path.stat().st_size != expected_size):
+                raise ApiError(400, '保存した入力ファイルと記録が一致しません。')
+            digest = hashlib.sha256()
+            with path.open('rb') as stream:
+                for block in iter(lambda: stream.read(1024 * 1024), b''):
+                    digest.update(block)
+            if not hmac.compare_digest(digest.hexdigest(), expected_hash):
+                raise ApiError(400, '保存後に入力ファイルが変更されています。')
+        paths[phase] = path
+    return paths
 
 
 class Application:
@@ -299,7 +358,8 @@ class Application:
         audit = read_json(confined(run, 'input_audit.json'))
         allowed_sample_fields = {'total_rows', 'accepted_rows', 'excluded_rows', 'clone_count', 'merged_rows',
                                  'reason_counts', 'rows_with_multiple_v_genes', 'rows_with_multiple_j_genes',
-                                 'source_unchanged_after_read', 'full_vdj_functionality_verified'}
+                                 'source_unchanged_after_read', 'full_vdj_functionality_verified',
+                                 'input_format', 'source_sheet', 'isotype_granularity', 'cdr3_definition'}
         safe_audit = {'samples': {key: {k: v for k, v in sample.items() if k in allowed_sample_fields}
                                    for key, sample in audit.get('samples', {}).items()},
                       'policies': audit.get('policies', {}), 'limitations': audit.get('limitations', [])}
@@ -376,9 +436,10 @@ class Application:
                 protect_folder(input_folder)
                 manifest = {'created_at': utc_now(), 'files': {}}
                 for phase, item in decoded.items():
-                    with (input_folder / f'{phase}.csv').open('xb') as handle:
+                    copy_name = phase + item['extension']
+                    with (input_folder / copy_name).open('xb') as handle:
                         handle.write(item['bytes'])
-                    manifest['files'][phase] = {'original_name': item['name'], 'copy_name': f'{phase}.csv',
+                    manifest['files'][phase] = {'original_name': item['name'], 'copy_name': copy_name,
                                                 'bytes': len(item['bytes']),
                                                 'sha256': hashlib.sha256(item['bytes']).hexdigest()}
                 write_atomic_json(input_folder / 'upload_manifest.json', manifest)

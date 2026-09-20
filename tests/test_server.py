@@ -12,7 +12,8 @@ import unittest
 from unittest.mock import patch
 
 from lmqasas.server import (ApiError, Application, LocalHTTPServer, analysis_parameters,
-                            confined, decode_uploads, read_json, write_atomic_json)
+                            confined, decode_uploads, read_json, resolve_uploaded_inputs,
+                            write_atomic_json)
 
 
 class FakeProcess:
@@ -32,6 +33,13 @@ def synthetic_uploads():
     return {phase: {'name': phase + '.csv', 'base64': content} for phase in ('Pre', 'Peak', 'Post')}
 
 
+def synthetic_excel_uploads():
+    # This factory writes only invented report records with standard-library OOXML.
+    from xlsx_fixture import synthetic_xlsx
+    content = base64.b64encode(synthetic_xlsx()).decode('ascii')
+    return {phase: {'name': phase + '.XLSX', 'base64': content} for phase in ('Pre', 'Peak', 'Post')}
+
+
 def synthetic_run(root):
     run = root / 'outputs/run_synthetic'
     selection = run / 'selection_initial'
@@ -42,6 +50,10 @@ def synthetic_run(root):
                                                'parameters': {'top_n': 300}, 'selection': summary,
                                                'input_paths': {'Pre': 'private/path.csv'}})
     write_atomic_json(run / 'input_audit.json', {'samples': {'Pre': {'total_rows': 1, 'clone_count': 1,
+                                                                  'input_format': 'takara_rg_xlsx',
+                                                                  'source_sheet': 'Back_data',
+                                                                  'isotype_granularity': 'subclass',
+                                                                  'cdr3_definition': 'as_reported_no_boundary_repair',
                                                                   'source_file': 'private/path.csv',
                                                                   'exclusions': [{'source_row': 2}]}}})
     write_atomic_json(selection / 'selection_summary.json', summary)
@@ -127,11 +139,90 @@ class ServerTests(unittest.TestCase):
         self.assertEqual((copied / 'Pre.csv').read_bytes(), base64.b64decode(source['Pre']['base64']))
         manifest = read_json(copied / 'upload_manifest.json')
         self.assertEqual(manifest['files']['Pre']['original_name'], 'Pre.csv')
+        self.assertEqual(manifest['files']['Pre']['copy_name'], 'Pre.csv')
         self.assertEqual(manifest['files']['Pre']['sha256'], hashlib.sha256((copied / 'Pre.csv').read_bytes()).hexdigest())
         self.assertTrue((copied / '.gitignore').exists())
         self.assertNotIn('files', job)
         self.assertNotIn('subject', job)
         self.assertEqual(len(self.spawn_calls), 1)
+        resolved = resolve_uploaded_inputs(copied)
+        self.assertEqual({phase: path.name for phase, path in resolved.items()},
+                         {phase: phase + '.csv' for phase in ('Pre', 'Peak', 'Post')})
+
+    def test_worker_rejects_ambiguous_or_changed_private_copies(self):
+        job = self.app.submit('analyze', {'subject': 'SYNTHETIC', 'files': synthetic_uploads()})
+        copied = self.app.inputs / job['id']
+        extra = copied / 'Pre.xlsx'
+        extra.write_bytes(b'synthetic second file')
+        with self.assertRaises(ApiError):
+            resolve_uploaded_inputs(copied)
+        extra.unlink()
+        original = (copied / 'Pre.csv').read_bytes()
+        (copied / 'Pre.csv').write_bytes(original.replace(b'CASSF', b'CATSF'))
+        with self.assertRaises(ApiError):
+            resolve_uploaded_inputs(copied)
+
+    def test_excel_upload_preserves_bytes_and_suffix_and_worker_resolves_manifest(self):
+        files = synthetic_excel_uploads()
+        status, body, _ = self.post('/api/analyze', {'subject': 'SYNTHETIC', 'files': files})
+        self.assertEqual(status, 202)
+        copied = self.app.inputs / body['job']['id']
+        manifest = read_json(copied / 'upload_manifest.json')
+        paths = resolve_uploaded_inputs(copied)
+        self.assertEqual(set(paths), {'Pre', 'Peak', 'Post'})
+        for phase, path in paths.items():
+            with self.subTest(phase=phase):
+                self.assertEqual(path.name, phase + '.xlsx')
+                self.assertEqual(path.read_bytes(), base64.b64decode(files[phase]['base64']))
+                self.assertEqual(manifest['files'][phase]['original_name'], phase + '.XLSX')
+                self.assertEqual(manifest['files'][phase]['copy_name'], phase + '.xlsx')
+                self.assertEqual(manifest['files'][phase]['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())
+                self.assertFalse((copied / (phase + '.csv')).exists())
+
+    def test_excel_and_csv_content_are_not_silently_reinterpreted(self):
+        csv_files, excel_files = synthetic_uploads(), synthetic_excel_uploads()
+        for data, false_suffix in ((csv_files, '.xlsx'), (excel_files, '.csv')):
+            files = {phase: {**item, 'name': phase + false_suffix} for phase, item in data.items()}
+            with self.subTest(false_suffix=false_suffix):
+                status, _, _ = self.post('/api/analyze', {'subject': 'SYNTHETIC', 'files': files})
+                self.assertEqual(status, 400)
+        self.assertFalse(self.app.inputs.exists())
+        self.assertFalse(self.spawn_calls)
+
+    def test_mixed_csv_and_excel_rejected_before_upload_writes(self):
+        files = synthetic_excel_uploads()
+        files['Pre'] = synthetic_uploads()['Pre']
+        status, body, _ = self.post('/api/analyze', {'subject': 'SYNTHETIC', 'files': files})
+        self.assertEqual(status, 400)
+        self.assertIn('混在', body['error'])
+        self.assertFalse(self.app.inputs.exists())
+        self.assertFalse(self.spawn_calls)
+
+    def test_worker_rejects_manifest_paths_wrong_phases_and_unknown_extensions(self):
+        job = self.app.submit('analyze', {'subject': 'SYNTHETIC', 'files': synthetic_uploads()})
+        copied = self.app.inputs / job['id']
+        manifest_path = copied / 'upload_manifest.json'
+        manifest = read_json(manifest_path)
+        for name in ('../Pre.csv', 'Peak.csv', 'Pre.xls', 'Pre.csv/child', 'C:\\private.csv'):
+            manifest['files']['Pre']['copy_name'] = name
+            write_atomic_json(manifest_path, manifest)
+            with self.subTest(copy_name=name), self.assertRaises(ApiError):
+                resolve_uploaded_inputs(copied)
+        manifest['files'].pop('Post')
+        write_atomic_json(manifest_path, manifest)
+        with self.assertRaises(ApiError):
+            resolve_uploaded_inputs(copied)
+
+    def test_worker_supports_legacy_csv_jobs_without_manifest(self):
+        copied = self.root / 'legacy'
+        copied.mkdir()
+        for phase, item in synthetic_uploads().items():
+            (copied / (phase + '.csv')).write_bytes(base64.b64decode(item['base64']))
+        resolved = resolve_uploaded_inputs(copied)
+        self.assertEqual(set(resolved), {'Pre', 'Peak', 'Post'})
+        (copied / 'Pre.csv').rename(copied / 'Pre.xlsx')
+        with self.assertRaises(ApiError):
+            resolve_uploaded_inputs(copied)
 
     def test_second_submission_is_busy_and_does_not_copy_more_files(self):
         data = {'subject': 'SYNTHETIC', 'files': synthetic_uploads()}
@@ -182,6 +273,10 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(detail['selection']['summary']['shortfall'], 299)
         self.assertNotIn('source_file', detail['input_audit']['samples']['Pre'])
         self.assertNotIn('exclusions', detail['input_audit']['samples']['Pre'])
+        self.assertEqual(detail['input_audit']['samples']['Pre']['input_format'], 'takara_rg_xlsx')
+        self.assertEqual(detail['input_audit']['samples']['Pre']['source_sheet'], 'Back_data')
+        self.assertEqual(detail['input_audit']['samples']['Pre']['isotype_granularity'], 'subclass')
+        self.assertEqual(detail['input_audit']['samples']['Pre']['cdr3_definition'], 'as_reported_no_boundary_repair')
         self.assertNotIn('input_paths', detail['metadata'])
         after = {p.relative_to(run).as_posix(): p.read_bytes() for p in run.rglob('*') if p.is_file()}
         self.assertEqual(before, after)

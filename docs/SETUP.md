@@ -26,7 +26,7 @@ PyTorchを先に公式CPU indexから入れてから、残りの固定依存をP
 
 ### 既存環境を更新する
 
-K-means用scikit-learnに加え、共通UMAP用umap-learnとPNG描画用matplotlibを追加しました。以前の環境にも次を実行します。モデルの取得より前にpackageをinstallしてください。
+K-means用scikit-learn、共通UMAP用umap-learn、PNG描画用matplotlibに加え、対応するタカラ／RGレポートExcelの読込に必要なpackageを追加しました。以前の環境にも次を実行します。モデルの取得より前にpackageをinstallしてください。
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pip --isolated install -r requirements-cpu.txt
@@ -37,6 +37,8 @@ K-means用scikit-learnに加え、共通UMAP用umap-learnとPNG描画用matplotl
 追加版：scikit-learn 1.9.1、SciPy 1.18.1、threadpoolctl 3.7.0、joblib 1.6.0、cloudpickle 3.1.2、narwhals 2.26.0。既存のPyTorch/AbLang2/NumPyの版は維持しています。
 
 可視化追加版：umap-learn 0.5.12、matplotlib 3.11.2、numba 0.67.0、pynndescent 0.6.0。間接依存もrequirementsに固定しました。GUIサーバーはPython標準ライブラリ、画面はローカルHTML/CSS/JavaScriptを使用し、Node.jsや外部Webサービスの契約は起動に不要です。Numbaの初回コンパイルは時間がかかるため、初回だけで毎回の速度を判断しません。
+
+Excel読込追加版：openpyxl 3.1.5、et_xmlfile 2.0.0、defusedxml 0.7.1。Excel本体のインストールやCOM操作は使いません。openpyxlの読み取り専用モードでブックを開き、XML読込にはdefusedxmlを必須とします。入力ブックの保存・数式再計算・外部リンク更新は行いません。対応する版・レイアウトは[Excel入力の規則](TAKARA_INPUT.md)、動作検証の範囲は[開発記録](DEVELOPMENT_LOG.md)を参照してください。
 
 ## 2. 環境を確認する
 
